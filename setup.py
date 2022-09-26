@@ -1,7 +1,20 @@
 #from setuptools import find_packages, setup
 from distutils.core import setup
+import os
+import sys
 
-setup(
+
+def setup_package():
+    src_path = os.path.dirname(os.path.abspath(__file__))
+    old_path = os.getcwd()
+    os.chdir(src_path)
+    sys.path.insert(0, src_path)
+
+    
+    from setuptools import setup
+
+    try:
+      setup(
     name='msops',
     packages=["msops"],
     version='0.4.1',
@@ -25,9 +38,16 @@ setup(
                  'Topic :: Software Development :: Build Tools',
                  'License :: OSI Approved :: MIT License',   
                  'Programming Language :: Python :: 3.10'
-  ]
+                ]
   )
-    
+    finally:
+        del sys.path[0]
+        os.chdir(old_path)
+    return
+
+
+if __name__ == '__main__':
+    setup_package()
 
     
 

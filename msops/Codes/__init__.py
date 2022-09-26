@@ -1,3 +1,3 @@
 #from . import Codecheck
-from .Codecheck import FundemantelParameters,Performance
+from .Tbdy import FundemantelParameters,Performance
 
