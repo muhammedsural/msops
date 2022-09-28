@@ -168,7 +168,11 @@ class opsmaterial(object):
             self.young_Module = 0      
         if self.stress_strain_test is True:
             self.testMaterial(materialName=self.MaterialType,scaleFactor=self.inputArray[3])
+            
+        self.OpenSeesMaterialDefaultValues = self.defaultOpsMaterial()
+        self.OpenSeesMaterialDefaultValues[self.MaterialType]=self.inputArray
         pass
+    
     def asdict(self):
         return asdict(self)
     
@@ -234,6 +238,7 @@ class opsmaterial(object):
 
         for thisMaterial in OpenSeesMaterialDefaultValues.keys():
             if materialName == None:
+                print(f"Material name ={materialName}")
                 return None
             if materialName != None and materialName == thisMaterial:
                 print(thisMaterial)
@@ -260,10 +265,14 @@ class opsmaterial(object):
                 
                 figModel = plt.figure(f'Material Response {thisMaterial}',figsize=(figSizeH,figSizeV), dpi=DPI, facecolor='w', edgecolor='k' )
                 axModel = figModel.add_subplot(1,1,1)    
-                line, = axModel.plot(AllStressStrain[thisKey]['strain'], AllStressStrain[thisKey]['stress'],linewidth='1',label=thisMaterial,marker = '')
+                axModel.plot(AllStressStrain[thisKey]['strain'], AllStressStrain[thisKey]['stress'],linewidth='1',label=thisMaterial,marker = '')
                 axModel.grid()
                 axModel.set_xlabel('Strain')
                 axModel.set_ylabel('Stress')
                 axModel.set_title(thisMaterial + ' Material Response')
                 plt.show()
                 show_inline_matplotlib_plots()
+                
+    def set_OpenSeesMaterialDefaultValues(self):
+        self.OpenSeesMaterialDefaultValues[self.MaterialType]=self.inputArray
+        self.testMaterial()

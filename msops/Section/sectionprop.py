@@ -77,19 +77,26 @@ class rcsectionprop():
 
 @dataclass
 class RecSection(object):
-    
+    """
+        INPUT
+            name           = Kesit adı           
+            b              = Kesit genişliği
+            h              = Kesit yüksekliği
+            coreConc       = Çekirdek malzemesi
+            coverConc      = Kabuk malzemesi
+            matRebars      = Çelik malzemesi
+            numrebars      = Donatı adetleri [üst başlık, gövde , alt başlık]
+            dia_rebars     = Donatı çapı [üst başlık, gövde , alt başlık] => [üst başlık, gövde , alt başlık,total donatı alanı,% pursantaj]
+            fiberData      =
+    """
     name               :  Optional[str]
     b                  :  Optional[float]
     h                  :  Optional[float]
-    area               :  Optional[float]        = None
-    I33                :  Optional[float]        = None
-    I22                :  Optional[float]        = None
-    I23                :  Optional[float]        = 0. 
-    coreConc           :  Optional[opsmaterial]  = None
-    coverConc          :  Optional[opsmaterial]  = None
-    matRebars          :  Optional[opsmaterial]  = None
+    coreConc           :  Optional[opsmaterial]  = opsmaterial('Concrete02',1,[-26922.92,-0.00546,-24433.71,-0.01390],defaultopsMat(),stress_strain_test=False)
+    coverConc          :  Optional[opsmaterial]  = opsmaterial('Concrete02',2,[-20000.0, -0.002,-17800.05,-0.00349],defaultopsMat(),stress_strain_test=False)
+    matRebars          :  Optional[opsmaterial]  = opsmaterial('Steel02',3,[ 500*un.MPa, 2*10**5*un.MPa, 0.01,18, 0.925, 0.15],defaultopsMat(),stress_strain_test=False)
     numrebars          :  Optional[list[int]]    = field(default_factory=list,metadata={'info': ['top','int','Bot']})
-    dia_area_rebars    :  Optional[list[float]]  = field(default_factory=list,metadata={'info': ['diameter','rebar_area']}) 
+    dia_rebars         :  Optional[list[float]]  = field(default_factory=list,metadata={'info': ['diameter','rebar_area']}) 
     fiberData          :  Optional[list[float]]  = None       
     
     
@@ -106,34 +113,35 @@ class RecSection(object):
         self.area = self.calcArea()
         self.I33  = self.calcI33() 
         self.I22  = self.calcI22()
+        self.I23 = 0
         
         if len(self.numrebars) == 0:
             self.numrebars = [3,2,3]
             
-        if len(self.dia_area_rebars) == 0:
+        if len(self.dia_rebars) <= 3:
             fi = 22 * un.mm
-            self.dia_area_rebars = [fi , 3.14*fi**2/4]
+            rebars = [fi,fi,fi]
+            top = 3.14*rebars[0]**2/4
+            int = 3.14*rebars[1]**2/4
+            bot = 3.14*rebars[2]**2/4
+            total = top*self.numrebars[0]+int*self.numrebars[1]+bot*self.numrebars[2]
+            pursantaj = (total/self.area)*100
+            self.dia_rebars = [top,int,bot,total,pursantaj]
+        else:
+            top = 3.14*self.dia_rebars[0]**2/4
+            int = 3.14*self.dia_rebars[1]**2/4
+            bot = 3.14*self.dia_rebars[2]**2/4
+            total = top*self.numrebars[0]+int*self.numrebars[1]+bot*self.numrebars[2]
+            pursantaj = (total/self.area)*100
+            self.dia_rebars.append(total) 
+            self.dia_rebars.append(pursantaj)
             
-        if self.coreConc is None or self.coverConc is None or self.matRebars is None:
-            y = defaultopsMat()
-            if self.coreConc is None:
-                print('Çekirdek beton malzemesinin bilgileri girilmemiş default değerler atandı...')
-                defaultcoreconc = opsmaterial('Concrete02',1,[-26922.92,-0.00546,-24433.71,-0.01390],y)
-                self.coreConc   = defaultcoreconc
-            if self.coverConc is None:
-                print('Kabuk beton malzemesinin bilgileri girilmemiş default değerler atandı...')
-                defaultcoverConc = opsmaterial('Concrete02',2,[-20000.0, -0.002,-17800.05,-0.00349],y)
-                self.coverConc   = defaultcoverConc
-            if self.matRebars is None:
-                print('Donatı malzemesinin bilgileri girilmemiş default değerler atandı...')
-                fsy = 500*un.MPa;     # Yield stress
-                Es  = 2*10**5*un.MPa;     # Young's modulus
-                bs  = 0.01           # strain-hardening ratio
-                R0  = 18             # control the transition from elastic to plastic branches
-                cR1 = 0.925         # control the transition from elastic to plastic branches
-                cR2 = 0.15          # control the transition from elastic to plastic branches
-                defaultmatRebars = opsmaterial('Steel02',3,[ fsy, Es, bs,  R0, cR1, cR2],y)
-                self.matRebars   = defaultmatRebars
-    
+        if self.coreConc.stress_strain_test:
+            self.coreConc.testMaterial(materialName=self.coreConc.MaterialType)
+        if self.coverConc.stress_strain_test:
+            self.coverConc.testMaterial(materialName=self.coverConc.MaterialType)
+        if self.matRebars.stress_strain_test:
+            self.matRebars.testMaterial(materialName=self.matRebars.MaterialType)
+        
     def asdict(self):
         return asdict()
