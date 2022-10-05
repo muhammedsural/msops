@@ -1,4 +1,3 @@
-
 from dataclasses import dataclass,field,asdict
 from typing import Optional
 from ..Units.Unit import Unit as un
@@ -92,9 +91,9 @@ class RecSection(object):
     name               :  Optional[str]
     b                  :  Optional[float]
     h                  :  Optional[float]
-    coreConc           :  Optional[opsmaterial]  = opsmaterial('Concrete02',1,[-26922.92,-0.00546,-24433.71,-0.01390],defaultopsMat(),stress_strain_test=False)
-    coverConc          :  Optional[opsmaterial]  = opsmaterial('Concrete02',2,[-20000.0, -0.002,-17800.05,-0.00349],defaultopsMat(),stress_strain_test=False)
-    matRebars          :  Optional[opsmaterial]  = opsmaterial('Steel02',3,[ 500*un.MPa, 2*10**5*un.MPa, 0.01,18, 0.925, 0.15],defaultopsMat(),stress_strain_test=False)
+    coreConc           :  Optional[opsmaterial]  = opsmaterial(3,1,[-26922.92,-0.00546,-24433.71,-0.01390],defaultopsMat(),stress_strain_test=False)
+    coverConc          :  Optional[opsmaterial]  = opsmaterial(3,2,[-20000.0, -0.002,-17800.05,-0.00349],defaultopsMat(),stress_strain_test=False)
+    matRebars          :  Optional[opsmaterial]  = opsmaterial(22,3,[ 500*un.MPa, 2*10**5*un.MPa, 0.01,18, 0.925, 0.15],defaultopsMat(),stress_strain_test=False)
     numrebars          :  Optional[list[int]]    = field(default_factory=list,metadata={'info': ['top','int','Bot']})
     dia_rebars         :  Optional[list[float]]  = field(default_factory=list,metadata={'info': ['diameter','rebar_area']}) 
     fiberData          :  Optional[list[float]]  = None       

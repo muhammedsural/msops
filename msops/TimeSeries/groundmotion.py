@@ -4,9 +4,7 @@
 # A library to use OpenSees via Python
 import EzGM
 
-from EzGM.Selection import tbdy_2018
 from time import time
-from EzGM.Utility import RunTime
 # A Library to visualize data from Python
 import matplotlib.pyplot as plt
 # A library provides high-performance vector, matrix and higher-dimensional data structures for Python
@@ -165,7 +163,7 @@ class GM:
                 # downloaded records for database = NGA_W2 case, write whatever you want,
                 # the object itself, selected and scaled time histories
                 spec.write(obj=1, recs=1, recs_f='')
-                RunTime(startTime)
+                EzGM.utility.RunTime(startTime)
 
                 # Let's also save design response spectrum
                 import numpy as np

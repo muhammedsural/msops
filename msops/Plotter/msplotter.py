@@ -250,6 +250,7 @@ class plotter:
         ax.set_ylabel('Stress (MPa)')  # Add a y-label to the axes.
         ax.set_title("Mander Model")  # Add a title to the axes.
         ax.legend(loc='upper left')
+        plt.show()
     
     @staticmethod
     def plot_internal_forces(sfacN=5.e-5, sfacV=5.e-5, sfacM=5.e-5):

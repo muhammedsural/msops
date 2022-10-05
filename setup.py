@@ -29,7 +29,7 @@ def setup_package():
           "numpy==1.22.4",
           "openseespy==3.4.0.1",
           "openseespywin==3.4.0.1.1",
-          "opsvis==1.0.12",
+          "opsvis==1.0.20",
           "pandas==1.2.5",
           "scipy==1.6.3"
       ],
