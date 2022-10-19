@@ -17,7 +17,7 @@ def setup_package():
       setup(
     name='msops',
     packages=["msops"],
-    version='0.4.1',
+    version='1.4.1',
     description='Python library for main shock after shock analysis with openseespy ',
     author='Muhammed Sural',
     license='MIT',

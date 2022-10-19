@@ -208,7 +208,7 @@ class opsmaterial(object):
         self.OpenSeesMaterialDefaultValues[material]=self.inputArray
         pass
     
-    def get_MaterialType(self):
+    def get_MaterialType(self) -> str:
         matType= {
             0:'Bond_SP01'        ,
             1:'Cast'             ,
@@ -240,7 +240,7 @@ class opsmaterial(object):
         }
         return matType[self.MaterialTypeIndex]
     
-    def asdict(self):
+    def asdict(self) -> dict:
         return asdict(self)
     
     def calc_young_modules(self):
@@ -249,32 +249,32 @@ class opsmaterial(object):
     def defaultOpsMaterial(self):
         OpenSeesMaterialDefaultValues = {}
     
-        OpenSeesMaterialDefaultValues['Bond_SP01'         ]          =[60.0,0.01,75.0,0.1,0.4,0.75]
-        OpenSeesMaterialDefaultValues['Cast'              ]               =[10.0,1.0,0.1,60.0,29000.0,1.0,0.05,18.0,0.925,0.15,0.0,1.0,0.0,1.0]
-        OpenSeesMaterialDefaultValues['Concrete01'        ]         =[-4.4,-0.002,-4.576,-0.04]
-        OpenSeesMaterialDefaultValues['Concrete02'        ]         =[-4.4,-0.002,-4.576,-0.04,0.1,0.572,286.0]
-        OpenSeesMaterialDefaultValues['Concrete04'        ]         =[-4.4,-0.002,-0.2,3700,0.5,0.001,0.1]
-        OpenSeesMaterialDefaultValues['Concrete06'        ]         =[-4.4,-0.002,2.0,1.0,0.32,0.44,0.0002,4.0,0.08]
-        OpenSeesMaterialDefaultValues['Concrete07'        ]         =[-4.4,-0.002,3700,0.44,0.0002,2.0,2.3,3.97]
-        OpenSeesMaterialDefaultValues['Elastic'           ]            =[29000.0,0.0,29000.0]
-        OpenSeesMaterialDefaultValues['ElasticPP'         ]          =[29000.0,0.0020689655,-0.0020689655,0.0]
-        OpenSeesMaterialDefaultValues['ElasticPPGap'      ]       =[29000.0,60.0,0.001,0.0]
-        OpenSeesMaterialDefaultValues['ENT'               ]                =[29000.0]
-        OpenSeesMaterialDefaultValues['Hysteretic'        ]         =[60.0,0.003,78.0,0.024,61.2,0.1,-60.0,-0.003,-78.0,-0.024,-61.2,-0.1,1.0,1.0,0.0,0.0,0.0]
-        OpenSeesMaterialDefaultValues['Bilin'             ]              =[29000.0,0.01,0.01,60.0,-60.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.04,0.04,0.01,0.01,0.33,0.33,0.225349487,0.225349487,0.0,0.0,0.0]
-        OpenSeesMaterialDefaultValues['ModIMKPeakOriented'] =[29000.0,0.01,0.01,60.0,-60.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.04,0.04,0.01,0.01,0.33,0.33,0.225349487,0.225349487,0.0,0.0]
-        OpenSeesMaterialDefaultValues['ModIMKPinching'    ]     =[29000.0,0.01,0.01,60.0,-60.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.04,0.04,0.01,0.01,0.33,0.33,0.225349487,0.225349487,0.0,0.0]
-        OpenSeesMaterialDefaultValues['Pinching4'         ]          =[60.0,0.003,78.0,0.024,61.2,0.1,61.0,1.0,-60.0,-0.003,-78.0,-0.024,-61.2,-0.1,-61.0,-1.0,0.5,0.25,0.05,0.5,0.25,0.05,1.0,0.2,0.3,0.2,0.9,0.5,0.5,2.0,2.0,0.5,1.0,0.0,1.0,1.0,0.9,10.0,'energy']
-        OpenSeesMaterialDefaultValues['PySimple1'         ]          =[1,40.0,0.01,200.0,0.0]
-        OpenSeesMaterialDefaultValues['QzSimple1'         ]          =[1,40.0,0.01,0.0,0.0]
-        OpenSeesMaterialDefaultValues['ReinforcingSteel'  ]   =[60.0,66.0,29000.0,2900.0,0.008,0.02,'-GABuck',6,1,0.4,0.5,'-DMBuck',6,1,'-CMFatigue',0.26,0.506,0.389,'-IsoHard',4.3,0.01,'-MPCurveParams',0.33,18,4]
-        OpenSeesMaterialDefaultValues['SAWS'              ]               =[15.799848,0.545094768764215,1.04095,159.83706,0.1022018,-0.0324118361176701,1.0,0.0692552,0.8,1.1]
+        OpenSeesMaterialDefaultValues['Bond_SP01'         ]      =[60.0,0.01,75.0,0.1,0.4,0.75]
+        OpenSeesMaterialDefaultValues['Cast'              ]      =[10.0,1.0,0.1,60.0,29000.0,1.0,0.05,18.0,0.925,0.15,0.0,1.0,0.0,1.0]
+        OpenSeesMaterialDefaultValues['Concrete01'        ]      =[-4.4,-0.002,-4.576,-0.04]
+        OpenSeesMaterialDefaultValues['Concrete02'        ]      =[-4.4,-0.002,-4.576,-0.04,0.1,0.572,286.0]
+        OpenSeesMaterialDefaultValues['Concrete04'        ]      =[-4.4,-0.002,-0.2,3700,0.5,0.001,0.1]
+        OpenSeesMaterialDefaultValues['Concrete06'        ]      =[-4.4,-0.002,2.0,1.0,0.32,0.44,0.0002,4.0,0.08]
+        OpenSeesMaterialDefaultValues['Concrete07'        ]      =[-4.4,-0.002,3700,0.44,0.0002,2.0,2.3,3.97]
+        OpenSeesMaterialDefaultValues['Elastic'           ]      =[29000.0,0.0,29000.0]
+        OpenSeesMaterialDefaultValues['ElasticPP'         ]      =[29000.0,0.0020689655,-0.0020689655,0.0]
+        OpenSeesMaterialDefaultValues['ElasticPPGap'      ]      =[29000.0,60.0,0.001,0.0]
+        OpenSeesMaterialDefaultValues['ENT'               ]      =[29000.0]
+        OpenSeesMaterialDefaultValues['Hysteretic'        ]      =[60.0,0.003,78.0,0.024,61.2,0.1,-60.0,-0.003,-78.0,-0.024,-61.2,-0.1,1.0,1.0,0.0,0.0,0.0]
+        OpenSeesMaterialDefaultValues['Bilin'             ]      =[29000.0,0.01,0.01,60.0,-60.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.04,0.04,0.01,0.01,0.33,0.33,0.225349487,0.225349487,0.0,0.0,0.0]
+        OpenSeesMaterialDefaultValues['ModIMKPeakOriented']      =[29000.0,0.01,0.01,60.0,-60.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.04,0.04,0.01,0.01,0.33,0.33,0.225349487,0.225349487,0.0,0.0]
+        OpenSeesMaterialDefaultValues['ModIMKPinching'    ]      =[29000.0,0.01,0.01,60.0,-60.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.04,0.04,0.01,0.01,0.33,0.33,0.225349487,0.225349487,0.0,0.0]
+        OpenSeesMaterialDefaultValues['Pinching4'         ]      =[60.0,0.003,78.0,0.024,61.2,0.1,61.0,1.0,-60.0,-0.003,-78.0,-0.024,-61.2,-0.1,-61.0,-1.0,0.5,0.25,0.05,0.5,0.25,0.05,1.0,0.2,0.3,0.2,0.9,0.5,0.5,2.0,2.0,0.5,1.0,0.0,1.0,1.0,0.9,10.0,'energy']
+        OpenSeesMaterialDefaultValues['PySimple1'         ]      =[1,40.0,0.01,200.0,0.0]
+        OpenSeesMaterialDefaultValues['QzSimple1'         ]      =[1,40.0,0.01,0.0,0.0]
+        OpenSeesMaterialDefaultValues['ReinforcingSteel'  ]      =[60.0,66.0,29000.0,2900.0,0.008,0.02,'-GABuck',6,1,0.4,0.5,'-DMBuck',6,1,'-CMFatigue',0.26,0.506,0.389,'-IsoHard',4.3,0.01,'-MPCurveParams',0.33,18,4]
+        OpenSeesMaterialDefaultValues['SAWS'              ]      =[15.799848,0.545094768764215,1.04095,159.83706,0.1022018,-0.0324118361176701,1.0,0.0692552,0.8,1.1]
         OpenSeesMaterialDefaultValues['SelfCentering'     ]      =[29000.0,2900.0,60.0,0.1,0,0,1]
-        OpenSeesMaterialDefaultValues['Steel01'           ]            =[60.0,29000.0,0.05,0.0,1.0,0.0,1.0]
-        OpenSeesMaterialDefaultValues['Steel02'           ]            =[60.0,29000.0,0.05,18.0,0.925,0.15,0.0,1.0,0.0,1.0,0.0]
-        OpenSeesMaterialDefaultValues['SteelMPF'          ]           =[60.0,40.0,29000.0,0.05,0.01,20.0,0.925,0.15,0.0,1.0,0.0,1.0]
-        OpenSeesMaterialDefaultValues['TzSimple1'         ]          =[1,40.0,0.01,0.0]
-        OpenSeesMaterialDefaultValues['UVCuniaxial'       ]        =[29000.0,60.0,122.63,19.74,143.49,248.14,2,31638.0,277.32,1548.6,9.04]
+        OpenSeesMaterialDefaultValues['Steel01'           ]      =[60.0,29000.0,0.05,0.0,1.0,0.0,1.0]
+        OpenSeesMaterialDefaultValues['Steel02'           ]      =[60.0,29000.0,0.05,18.0,0.925,0.15,0.0,1.0,0.0,1.0,0.0]
+        OpenSeesMaterialDefaultValues['SteelMPF'          ]      =[60.0,40.0,29000.0,0.05,0.01,20.0,0.925,0.15,0.0,1.0,0.0,1.0]
+        OpenSeesMaterialDefaultValues['TzSimple1'         ]      =[1,40.0,0.01,0.0]
+        OpenSeesMaterialDefaultValues['UVCuniaxial'       ]      =[29000.0,60.0,122.63,19.74,143.49,248.14,2,31638.0,277.32,1548.6,9.04]
         OpenSeesMaterialDefaultValues['ViscousDamper'     ]      =[29000.0,200.0,0.3,0.0,1,1e-6,1e-10,15.0]
         
         return OpenSeesMaterialDefaultValues
@@ -293,12 +293,6 @@ class opsmaterial(object):
         AllStressStrain = {}
         
         strain=self.defineStrainHistory(peaksArray,scaleFactor,nSteps,nCycles)
-
-        figSizeH = 6
-        figSizeV = 4
-        DPI = 200
-
-        
         thisCount = 0
         OpenSeesMaterialDefaultValues = self.defaultOpsMaterial()
         OpenSeesMaterialDefaultValues[self.MaterialType]=self.inputArray
@@ -330,16 +324,20 @@ class opsmaterial(object):
                 AllStressStrain[thisKey]['strain'] = strain
                 AllStressStrain[thisKey]['stress'] = stress
                 
-                figModel = plt.figure(f'Material Response {thisMaterial}',figsize=(figSizeH,figSizeV), dpi=DPI, facecolor='w', edgecolor='k' )
-                axModel = figModel.add_subplot(1,1,1)    
-                axModel.plot(AllStressStrain[thisKey]['strain'], AllStressStrain[thisKey]['stress'],linewidth='1',label=thisMaterial,marker = '')
-                axModel.grid()
-                axModel.set_xlabel('Strain')
-                axModel.set_ylabel('Stress')
-                axModel.set_title(thisMaterial + ' Material Response')
-                plt.show()
-                show_inline_matplotlib_plots()
+                self.plot_stressstrain(strain=AllStressStrain[thisKey]['strain'],stress= AllStressStrain[thisKey]['stress'],Name=thisMaterial)
                 
     def set_OpenSeesMaterialDefaultValues(self):
         self.OpenSeesMaterialDefaultValues[self.MaterialType]=self.inputArray
         self.testMaterial()
+        
+    def plot_stressstrain(self,strain : list, stress : list ,figSizeH = 6, figSizeV = 4, DPI = 200 ,Name = None,**kwargs):
+        
+        figModel = plt.figure(f'Material Response {Name}',figsize=(figSizeH,figSizeV), dpi=DPI, facecolor='w', edgecolor='k' )
+        axModel = figModel.add_subplot(1,1,1)    
+        axModel.plot(strain, stress,**kwargs)
+        axModel.grid()
+        axModel.set_xlabel('Strain')
+        axModel.set_ylabel('Stress')
+        axModel.set_title(Name + ' Material Response')
+        plt.show()
+        show_inline_matplotlib_plots()

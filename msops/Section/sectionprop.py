@@ -3,7 +3,6 @@ from typing import Optional
 from ..Units.Unit import Unit as un
 from ..Material.material import defaultopsMat
 from ..Material.material import opsmaterial
-from numpy import array
 
 class rcsectionprop():
     def __init__(self,sectionname:str,width:float,height:float,concmaterial:None,rebarmaterial:None,numrebars : None,dialongrebars:None,density=24.99):
@@ -96,8 +95,7 @@ class RecSection(object):
     matRebars          :  Optional[opsmaterial]  = opsmaterial(22,3,[ 500*un.MPa, 2*10**5*un.MPa, 0.01,18, 0.925, 0.15],defaultopsMat(),stress_strain_test=False)
     numrebars          :  Optional[list[int]]    = field(default_factory=list,metadata={'info': ['top','int','Bot']})
     dia_rebars         :  Optional[list[float]]  = field(default_factory=list,metadata={'info': ['diameter','rebar_area']}) 
-    fiberData          :  Optional[list[float]]  = None       
-    
+    fiberData          :  Optional[list[float]]  = None
     
     def calcArea(self):
         return self.b*self.h
@@ -113,6 +111,9 @@ class RecSection(object):
         self.I33  = self.calcI33() 
         self.I22  = self.calcI22()
         self.I23 = 0
+        
+        if self.numrebars is None or self.dia_rebars is None:
+            raise TypeError("This values not None type")
         
         if len(self.numrebars) == 0:
             self.numrebars = [3,2,3]

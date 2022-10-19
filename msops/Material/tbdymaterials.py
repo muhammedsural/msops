@@ -242,8 +242,3 @@ def tbdy_steel(celiksınıfı,E_s = 2*10**5):
     return(eps_s_list,fs_list)
 
 
-
-
-    
-
-
