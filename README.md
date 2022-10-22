@@ -16,10 +16,6 @@ Python library for structure analysis with openseespy
   <img src=https://img.shields.io/twitter/url?label=Twitter&logo=Twitter&style=for-the-badge&url=https%3A%2F%2Ftwitter.com%2FSuralMuhammet alt=twitter style="margin-bottom: 5px;" </img>
 </a>
 
-<a href="https://github.com/muhammedsural" target="_blank">
-<img src=https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white alt=github style="margin-bottom: 5px;" />
-</a>
-
 <a href="https://www.linkedin.com/in/muhammedsural/" target="_blank">
 <img src=https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white alt=linkedin style="margin-bottom: 5px;" />
 </a>
