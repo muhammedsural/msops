@@ -4,7 +4,7 @@ from enum import Enum,auto
 import math
 from msops.Elements.BeamIntegration import Integration
 from msops.Units.Unit import Unit 
-from Node import Node
+from msops.Elements.Node import Node
 
 @dataclass
 class FrameType(Enum):
@@ -15,21 +15,21 @@ class FrameType(Enum):
 @dataclass
 class ElasticBeamColumn(ABC):
     """
-            eleTag (int)	tag of the element
-            eleNodes (list (int))	a list of two element nodes
-        EleArgs for forcebeamcolumn must be contains ;
-            transfTag (int)	tag of transformation
-            integrationTag (int)	tag of beamIntegration()
-        and optional parameters ;
-            maxIter (int)	maximum number of iterations to undertake to satisfy element compatibility (optional)
-            tol (float)	tolerance for satisfaction of element compatibility (optional)
-            mass (float)	element mass density (per unit length), from which a lumped-mass matrix is formed (optional)
+    Abstract class for frame elements
+        Attributes:
+            Id
+            EleNodes
+            TransfTag
+            Integration
+            MaxIter
+            Tolerance
+            Mass
+            Length
     """
     Id          : int
     EleNodes    : list[Node] = field(default_factory=list)
     TransfTag   : str = field(default_factory=str)
     Integration : Integration = field(default_factory=Integration)
-    #Section     : RecSection = field(default_factory=RecSection)
     MaxIter     : int = field(default_factory=int)
     Tolerance   : int = field(default_factory=int)
     Mass        : int = field(default_factory=int)
@@ -50,20 +50,22 @@ class ElasticBeamColumn(ABC):
         
     def calc_mass(self) -> None:
         """Calculation frame mass function"""
-        self.Mass = self.Integration.Args[0].area * 24.99 * self.Length / Unit.g
+        self.Mass = round(self.Integration.Args[0].area * 24.99 * self.Length / Unit.g,3)
+
+    def addNodalMass(self):
+        nodalMass = self.Mass/2
+        self.EleNodes[0].add_mass(mass=nodalMass)
+        self.EleNodes[1].add_mass(mass=nodalMass)
 
 @dataclass
 class Column(ElasticBeamColumn):
     """ ElasticBeamcolumn for column elements"""
     frameType : FrameType = FrameType.Column
     
-    """def __post__init__(self):
-        super().frame_length()
-        super().calc_mass()"""
-    
     def __post_init__(self):
         self.frame_length()
         self.calc_mass()
+        self.addNodalMass()
     
     def __repr__(self) -> str:
         return f'EleId = {self.Id}, EleNodes = {self.EleNodes}, transfTag = {self.TransfTag}, integrationTag = {self.Integration} length = {self.Length} mass = {self.Mass} '
@@ -77,21 +79,22 @@ class Beam(ElasticBeamColumn):
     def __post_init__(self):
         self.frame_length()
         self.calc_mass()
+        self.addNodalMass()
     
     def __repr__(self) -> str:
         return f'EleId = {self.Id}, EleNodes = {self.EleNodes}, transfTag = {self.TransfTag}, integrationTag = {self.Integration} length = {self.Length} mass = {self.Mass} '
 
-"""@dataclass
+@dataclass
 class FrameDatas:
-    Frames : List[ElasticBeamColumn] = []
+    Frames : list[ElasticBeamColumn] = field(default_factory=list)
     
     def add_frame(self, frame: ElasticBeamColumn) -> None:
-        Add an ElasticBeamColumn to the list of Frames.
+        """Add an ElasticBeamColumn to the list of Frames."""
         self.Frames.append(frame)
 
-    def find_frame(self, frameType: FrameType) -> List[ElasticBeamColumn]:
-        Find all frames with a particular role in the employee list
-        return [frame for frame in self.Frames if frame.FrameType is FrameType]"""
+    def find_frame(self, frameType: FrameType) -> list[ElasticBeamColumn]:
+        """Find all frames with a particular role in the employee list"""
+        return [frame for frame in self.Frames if frame.frameType is frameType]
 
 """def main() -> None:
 

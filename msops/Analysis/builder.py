@@ -638,14 +638,21 @@ class opsbuild:
         
         return P,M
 
-    def MomentCurvature(secTag, axialLoad, maxK,HSec,BSec, numIncr=100):
+    def MomentCurvature(secTag : int, axialLoad : float, maxK : int,HSec : int,BSec : int, numIncr : int =100) -> list:
         """
+        Moment curvature analysis
+        
+        Input
             secTag          :  Kesit id
             axial load      :  Kesite etkitilen eksenel yük
             maxK            :  Hedef dönme
             HSec            :  depth of section, along local-y axis
             BSec            :  width of section, along local-z axis
             numIncr         :  Number of analysis increments
+        
+        Output
+            Load -> List
+            Curvature -> List
         """
         y1 = HSec / 2
         z1 = BSec / 2
@@ -662,16 +669,6 @@ class opsbuild:
         # Define element
         #                               tag   ndI  ndJ  secTag
         ops.element('zeroLengthSection',  1,   1,   2,  secTag)
-
-        # Create recorder
-        #recorder Node -file section$secTag.out -time -node 2 -dof 3 disp
-        #ops.recorder('Node',2,'-file','section.out','-node',2,'-dof',3,'disp')
-        #ops.recorder('Node',2, '-file', "M-C/section1.out",'-time','-closeOnWrite', '-node', 2, '-dof',3, 'disp')
-        # Create recorders
-        """
-        # Create recorders
-        fiber_stressStrain = op.eleResponse(ele1, 'section', 'fiber', str(y1 - cover), str(z1 - cover), str(3), 'stressStrain')
-        """
 
         # Save element forces and nodal displacements, base reactions
         # ------------------------------------------------------------------------
@@ -702,34 +699,25 @@ class opsbuild:
 
         # Compute curvature increment
         dK = maxK / numIncr
-
         # Use displacement control at node 2 for section analysis
         #   integrator('DisplacementControl', nodeTag, dof, incr, numIter=1, dUmin=incr, dUmax=incr)
         ops.integrator('DisplacementControl',    2   ,  3 ,  dK ,    1     ,    dK     ,    dK)
-
-        # Do the section analysis
-        #ops.analyze(numIncr)
-
         step = 0
         ok = 0
         #loadf = 1.0        # This feature of disabling the possibility of having a negative loading has been included
         LoadFactor = [0] 
         Curvature = [0]
-
+        
         while step <= numIncr and ok == 0:
             step +=1
             ok = ops.analyze(1)
-
             if ok == 0:
                 loadf = ops.getTime()                                # get load factor
                 LoadFactor.append(ops.getTime())                     # append loadfactor
                 Curvature.append(HSec*ops.nodeDisp(2, 3)) # append moment
             else:
                 print(f"analiz converge etmedi {step}/{numIncr}")
-                break    
-        maxMoment = max(LoadFactor)
-        maxMomentIndex = LoadFactor.index(maxMoment)
-
+                break
         return LoadFactor,Curvature
 
     def modal_analys(numMode):
@@ -1454,8 +1442,7 @@ class opsbuild:
                             eleForces[ele] = np.append(eleForces[ele],forces)
                             #eleForces1[ele] = np.append(eleForces1[ele],forces)
                     eleForces1 = pd.DataFrame(columns=["Ni","Nj","Ti","Tj","Mi","Mj"],index=eleForces.keys())
-                    
-                    
+                
                     #for key in eleForces.keys():
                     #    eleForces1["Mi"] = eleForces[key][2::6]
                     #    eleForces1["Ti"] = eleForces[key][1::6]
@@ -1514,8 +1501,8 @@ class opsbuild:
                             fiberOutput[ele]["steel_top"]["strain"]   .append(fiber_stressStrain_steel_top[1])
                         
                         if len(fiber_stressStrain_steel_bot)>1:
-                            fiberOutput[ele]["steel_bot"]["stress"]   .append(fiber_stressStrain_steel_bot[0])                                              
-                            fiberOutput[ele]["steel_bot"]["strain"]   .append(fiber_stressStrain_steel_bot[1])  
+                            fiberOutput[ele]["steel_bot"]["stress"]   .append(fiber_stressStrain_steel_bot[0])
+                            fiberOutput[ele]["steel_bot"]["strain"]   .append(fiber_stressStrain_steel_bot[1])
                                                                         
                 if animotions:
                     for el_i, ele_tag in enumerate(el_tags):

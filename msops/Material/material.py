@@ -1,13 +1,75 @@
 from ast import Return
 from dataclasses import dataclass,field,asdict
 from typing import Dict, Optional
-from ..Units.Unit import Unit as un
+from msops.Units.Unit import Unit as un
 import openseespy.opensees as ops
 import numpy as np
 import matplotlib.pyplot as plt
 # https://github.com/jupyter-widgets/ipywidgets/issues/1853
 from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
 
+class MaterialPropManager:
+    
+    def calc_shear_modules(Ec : float, poisson : float) -> float:
+        return round(Ec/(2*(1+poisson)),4)
+        
+    def calc_young_modules(fck : int) -> float:
+        return round(57000*un.MPa*(fck/un.MPa)**0.5,4)
+    
+    def defineStrainHistory(peaksArray,scaleFactor,nSteps,nCycles) -> list:
+        strain = []
+        for thisPeak in peaksArray:
+            for i in range(nCycles):
+                strain = np.append(strain,np.linspace(0,thisPeak*scaleFactor,nSteps))
+                strain = np.append(strain,np.linspace(thisPeak*scaleFactor,-thisPeak*scaleFactor,nSteps))
+                strain = np.append(strain,np.linspace(-thisPeak*scaleFactor,0,nSteps))
+
+        return strain
+    
+    def default_Openseespy_Material() -> dict:
+        OpenSeesMaterialDefaultValues = {}
+    
+        OpenSeesMaterialDefaultValues['Bond_SP01'         ]      =[60.0,0.01,75.0,0.1,0.4,0.75]
+        OpenSeesMaterialDefaultValues['Cast'              ]      =[10.0,1.0,0.1,60.0,29000.0,1.0,0.05,18.0,0.925,0.15,0.0,1.0,0.0,1.0]
+        OpenSeesMaterialDefaultValues['Concrete01'        ]      =[-4.4,-0.002,-4.576,-0.04]
+        OpenSeesMaterialDefaultValues['Concrete02'        ]      =[-4.4,-0.002,-4.576,-0.04,0.1,0.572,286.0]
+        OpenSeesMaterialDefaultValues['Concrete04'        ]      =[-4.4,-0.002,-0.2,3700,0.5,0.001,0.1]
+        OpenSeesMaterialDefaultValues['Concrete06'        ]      =[-4.4,-0.002,2.0,1.0,0.32,0.44,0.0002,4.0,0.08]
+        OpenSeesMaterialDefaultValues['Concrete07'        ]      =[-4.4,-0.002,3700,0.44,0.0002,2.0,2.3,3.97]
+        OpenSeesMaterialDefaultValues['Elastic'           ]      =[29000.0,0.0,29000.0]
+        OpenSeesMaterialDefaultValues['ElasticPP'         ]      =[29000.0,0.0020689655,-0.0020689655,0.0]
+        OpenSeesMaterialDefaultValues['ElasticPPGap'      ]      =[29000.0,60.0,0.001,0.0]
+        OpenSeesMaterialDefaultValues['ENT'               ]      =[29000.0]
+        OpenSeesMaterialDefaultValues['Hysteretic'        ]      =[60.0,0.003,78.0,0.024,61.2,0.1,-60.0,-0.003,-78.0,-0.024,-61.2,-0.1,1.0,1.0,0.0,0.0,0.0]
+        OpenSeesMaterialDefaultValues['Bilin'             ]      =[29000.0,0.01,0.01,60.0,-60.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.04,0.04,0.01,0.01,0.33,0.33,0.225349487,0.225349487,0.0,0.0,0.0]
+        OpenSeesMaterialDefaultValues['ModIMKPeakOriented']      =[29000.0,0.01,0.01,60.0,-60.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.04,0.04,0.01,0.01,0.33,0.33,0.225349487,0.225349487,0.0,0.0]
+        OpenSeesMaterialDefaultValues['ModIMKPinching'    ]      =[29000.0,0.01,0.01,60.0,-60.0,1.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,0.04,0.04,0.01,0.01,0.33,0.33,0.225349487,0.225349487,0.0,0.0]
+        OpenSeesMaterialDefaultValues['Pinching4'         ]      =[60.0,0.003,78.0,0.024,61.2,0.1,61.0,1.0,-60.0,-0.003,-78.0,-0.024,-61.2,-0.1,-61.0,-1.0,0.5,0.25,0.05,0.5,0.25,0.05,1.0,0.2,0.3,0.2,0.9,0.5,0.5,2.0,2.0,0.5,1.0,0.0,1.0,1.0,0.9,10.0,'energy']
+        OpenSeesMaterialDefaultValues['PySimple1'         ]      =[1,40.0,0.01,200.0,0.0]
+        OpenSeesMaterialDefaultValues['QzSimple1'         ]      =[1,40.0,0.01,0.0,0.0]
+        OpenSeesMaterialDefaultValues['ReinforcingSteel'  ]      =[60.0,66.0,29000.0,2900.0,0.008,0.02,'-GABuck',6,1,0.4,0.5,'-DMBuck',6,1,'-CMFatigue',0.26,0.506,0.389,'-IsoHard',4.3,0.01,'-MPCurveParams',0.33,18,4]
+        OpenSeesMaterialDefaultValues['SAWS'              ]      =[15.799848,0.545094768764215,1.04095,159.83706,0.1022018,-0.0324118361176701,1.0,0.0692552,0.8,1.1]
+        OpenSeesMaterialDefaultValues['SelfCentering'     ]      =[29000.0,2900.0,60.0,0.1,0,0,1]
+        OpenSeesMaterialDefaultValues['Steel01'           ]      =[60.0,29000.0,0.05,0.0,1.0,0.0,1.0]
+        OpenSeesMaterialDefaultValues['Steel02'           ]      =[60.0,29000.0,0.05,18.0,0.925,0.15,0.0,1.0,0.0,1.0,0.0]
+        OpenSeesMaterialDefaultValues['SteelMPF'          ]      =[60.0,40.0,29000.0,0.05,0.01,20.0,0.925,0.15,0.0,1.0,0.0,1.0]
+        OpenSeesMaterialDefaultValues['TzSimple1'         ]      =[1,40.0,0.01,0.0]
+        OpenSeesMaterialDefaultValues['UVCuniaxial'       ]      =[29000.0,60.0,122.63,19.74,143.49,248.14,2,31638.0,277.32,1548.6,9.04]
+        OpenSeesMaterialDefaultValues['ViscousDamper'     ]      =[29000.0,200.0,0.3,0.0,1,1e-6,1e-10,15.0]
+        
+        return OpenSeesMaterialDefaultValues
+    
+    def plot_stressstrain(self,strain : list, stress : list ,figSizeH = 6, figSizeV = 4, DPI = 200 ,Name = None,**kwargs):
+        
+        figModel = plt.figure(f'Material Response {Name}',figsize=(figSizeH,figSizeV), dpi=DPI, facecolor='w', edgecolor='k' )
+        axModel = figModel.add_subplot(1,1,1)    
+        axModel.plot(strain, stress,**kwargs)
+        axModel.grid()
+        axModel.set_xlabel('Strain')
+        axModel.set_ylabel('Stress')
+        axModel.set_title(Name + ' Material Response')
+        plt.show()
+        show_inline_matplotlib_plots()
 
 
 class defaultopsMat():
@@ -108,9 +170,12 @@ class Concrete():
     name          : str   = None
     density       : float = 24.99
     fck           : float = None
-    Ec            : float = field(default_factory=float)
     poisson       : float = 0.2
+    Ec            : float = field(default_factory=float)
     shear_modules : float = field(default_factory=float)
+    
+    def __repr__(self) -> str:
+        return f'Name : {self.name}, fck : {self.fck}, Ec : {self.Ec}, poisson : {self.poisson}, shear_modules : {self.shear_modules} '
     
     def __calc_shear_modules(self):
         Gc = self.Ec/(2*(1+self.poisson))
@@ -123,7 +188,6 @@ class Concrete():
     def __post_init__(self):
         self.__calc_young_modules()
         self.__calc_shear_modules()
-        
         
     def asdict():
         return asdict()
@@ -139,8 +203,12 @@ class Steel():
     Kres    : float = None
     Es      : float = 2*10**5*un.MPa
     
+    def __repr__(self) -> str:
+        return f'Name : {self.name}, fsy : {self.f_sy}, eps_sy : {self.eps_sy}, eps_sh : {self.eps_sh}, eps_su : {self.eps_su}, {self.eps_su}, Es : {self.Es} '
+    
     def asdict():
         return asdict()
+    
     def __post_init__(self):
         steel = {
                     "S220" :[220*un.MPa,0.0011, 0.011, 0.12 , 1.20],
@@ -154,9 +222,9 @@ class Steel():
             self.eps_sh = steel[self.name][2]
             self.eps_su = steel[self.name][3]
             self.Kres   = steel[self.name][4]
-            
+
 @dataclass
-class opsmaterial(object):
+class opsmaterial:
     """
     MaterialTypeIndex =>    0:'Bond_SP01'        ,
                             1:'Cast'             ,
@@ -196,17 +264,18 @@ class opsmaterial(object):
     young_Module       : Optional[float]         = None
     stress_strain_test : Optional[bool]          = False
     
-    def __post_init__(self): 
-        material=self.get_MaterialType() 
+    def __post_init__(self) -> None: 
+        material=self.get_MaterialType()
         if self.young_Module is None:
-            self.young_Module = 0      
+            self.young_Module = 0
+            
+        if self.inputArray is None:
+            defaultmat = self.defaultOpsMaterial()
+            self.inputArray = defaultmat[material]
+            
         if self.stress_strain_test is True:
-            
             self.testMaterial(materialName=material,scaleFactor=self.inputArray[3])
-            
-        self.OpenSeesMaterialDefaultValues = self.defaultOpsMaterial()
-        self.OpenSeesMaterialDefaultValues[material]=self.inputArray
-        pass
+        
     
     def get_MaterialType(self) -> str:
         matType= {
@@ -248,7 +317,6 @@ class opsmaterial(object):
 
     def defaultOpsMaterial(self):
         OpenSeesMaterialDefaultValues = {}
-    
         OpenSeesMaterialDefaultValues['Bond_SP01'         ]      =[60.0,0.01,75.0,0.1,0.4,0.75]
         OpenSeesMaterialDefaultValues['Cast'              ]      =[10.0,1.0,0.1,60.0,29000.0,1.0,0.05,18.0,0.925,0.15,0.0,1.0,0.0,1.0]
         OpenSeesMaterialDefaultValues['Concrete01'        ]      =[-4.4,-0.002,-4.576,-0.04]
@@ -295,7 +363,7 @@ class opsmaterial(object):
         strain=self.defineStrainHistory(peaksArray,scaleFactor,nSteps,nCycles)
         thisCount = 0
         OpenSeesMaterialDefaultValues = self.defaultOpsMaterial()
-        OpenSeesMaterialDefaultValues[self.MaterialType]=self.inputArray
+        OpenSeesMaterialDefaultValues[self.get_MaterialType()]=self.inputArray
 
         for thisMaterial in OpenSeesMaterialDefaultValues.keys():
             if materialName == None:
@@ -341,3 +409,12 @@ class opsmaterial(object):
         axModel.set_title(Name + ' Material Response')
         plt.show()
         show_inline_matplotlib_plots()
+        
+
+
+def main() -> None:
+    """ Main function"""
+    mat = opsmaterial(MaterialTypeIndex=2,matTag=1,inputArray=None,young_Module=None,stress_strain_test=True)
+
+if __name__ == "__main__":
+    main()

@@ -6,22 +6,22 @@ class IntegrationType(Enum):
     """
         Integration type in openseespy. distributed plasticy [1-10] and plastic hinge [11-15]
     """
-    Lobatto           = auto()
-    Legendre          = auto()
-    NewtonCotes       = auto()
-    Radau             = auto()
-    Trapezoidal       = auto()
-    CompositeSimpson  = auto()
-    UserDefined       = auto()
-    FixedLocation     = auto()
-    LowOrder          = auto()
-    MidDistance       = auto()
+    Lobatto           = "Lobatto"
+    Legendre          = "Legendre"
+    NewtonCotes       = "NewtonCotes"
+    Radau             = "Radau"
+    Trapezoidal       = "Trapezoidal     "
+    CompositeSimpson  = "CompositeSimpson"
+    UserDefined       = "UserDefined     "
+    FixedLocation     = "FixedLocation   "
+    LowOrder          = "LowOrder        "
+    MidDistance       = "MidDistance     "
     
-    UserHinge         = auto()
-    HingeMidpoint     = auto()
-    HingeRadau        = auto()
-    HingeRadauTwo     = auto()
-    HingeEndpoint     = auto()
+    UserHinge         = "UserHinge    "
+    HingeMidpoint     = "HingeMidpoint"
+    HingeRadau        = "HingeRadau   "
+    HingeRadauTwo     = "HingeRadauTwo"
+    HingeEndpoint     = "HingeEndpoint"
 
 @dataclass
 class Integration:
