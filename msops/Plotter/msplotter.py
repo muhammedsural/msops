@@ -1,10 +1,9 @@
-from importlib.abc import Loader
 import os
 import matplotlib.pyplot as plt
 import openseespy.opensees as ops
 import opsvis as opsv
 import numpy as np
-
+from scipy.integrate import cumtrapz
 class plotter:
     
     def top_disp_plot(nodalDispDict,time,dt):
@@ -37,15 +36,16 @@ class plotter:
         ax.set_ylabel(f'Horizontal Displacement of node {max(ops.getNodeTags())}')
         plt.show()
     
-    def plot_MomRot(itotalRot,ibasicForce,jtotalRot,jbasicForce,count=5):
+    def plot_MomRot(itotalRot,ibasicForce,jtotalRot,jbasicForce,count: list = [1 for i in range(5)]):
         """
          Time History analizi yapıldıktan sonra elde edilen sectionDataframeindeki ilgili kolonlar input olarak verilmeli
         """
         for ele in ops.getEleTags():
-            if ele <= count:
+            if ele in count:
                 fig , ax = plt.subplots( 1,2 , sharex = True , sharey = True  , figsize=(20,5) )
                 ax[0].plot( itotalRot[ele], ibasicForce[ele] ) , ax[0].axhline(c = "k") , ax[0].axvline(c = "k") , ax[0].set_xlabel("Rotation (rad)"), ax[0].set_ylabel( "Moment (kNM)") , ax[0].legend( ["i node"]) , ax[0].set_frame_on(False) ; 
                 ax[1].plot( jtotalRot[ele], jbasicForce[ele] ) , ax[1].axhline(c = "k") , ax[1].axvline(c = "k") , ax[1].set_xlabel("Rotation (rad)"), ax[1].set_ylabel( "Moment (kNM)") , ax[1].legend( ["j node"]) , ax[1].set_frame_on(False) ; plt.suptitle( f"Frame{ele} Hysteresis Graphs".upper(), fontsize = 20 );
+        plt.show()
     
     def plot_Rotation(totalRot,plasticRot,elasticRot,count=5):
         for ele in ops.getEleTags():
@@ -56,24 +56,24 @@ class plotter:
                 ax[2].plot( elasticRot[ele] ) , ax[2].axhline(c = "k") , ax[2].axvline(c = "k") , ax[2].set_xlabel("Step"), ax[2].set_ylabel( "Rotation (rad)") , ax[2].legend( ["Elastic"]) , ax[2].set_frame_on(False) ; 
                 plt.suptitle( f"{ele} Rotations Graphs".upper(), fontsize = 20 );
     
-    def plot_Energy(ibasicForce,jbasicForce,itotalrot,iplasticrot,ielasticrot,jtotalrot,jplasticrot,jelasticrot,count=5):
-        from scipy.integrate import cumtrapz
+    def plot_Energy(ibasicForce,jbasicForce,itotalrot,iplasticrot,ielasticrot,jtotalrot,jplasticrot,jelasticrot,count : int):
+        """Plot Dissipated Energy Graphs"""
         for ele in ops.getEleTags():
-            if ele<= count:
+            if ele <= count:
                 EH_i_total   = cumtrapz(jbasicForce[ele],jtotalrot[ele])
                 EH_i_plastic = cumtrapz(jbasicForce[ele],jplasticrot[ele])
                 EH_i_elastic = cumtrapz(jbasicForce[ele],jelasticrot[ele])
                 EH_j_total   = cumtrapz(ibasicForce[ele],itotalrot[ele])
                 EH_j_plastic = cumtrapz(ibasicForce[ele],iplasticrot[ele])
                 EH_j_elastic = cumtrapz(ibasicForce[ele],ielasticrot[ele])
-                """
-                for index,i in enumerate(EH_i_elastic):
+                
+                """for index,i in enumerate(EH_i_elastic):
                     if i<0:
                         EH_i_elastic[index] *= -1
                 for index,i in enumerate(EH_j_elastic):
                     if i<0:
-                        EH_j_elastic[index] *= -1
-                 """       
+                        EH_j_elastic[index] *= -1"""
+                       
                 for count,(e,p) in enumerate(zip(EH_i_elastic,EH_i_plastic)):
                     EH_i_total[count] = e+p
                 for count,(e,p) in enumerate(zip(EH_j_elastic,EH_j_plastic)):
@@ -95,7 +95,9 @@ class plotter:
                     os.mkdir(path)
                 fig.savefig(path+f"/Frame{ele}.png",facecolor='white')
                 #plt.savefig(path+f"/Frame{ele}.png")
-                #plt.show() 
+            continue
+        plt.show() 
+    
     def plot_StressStrain(sectionRegion,count=5):
         for ele in ops.getEleTags():
             if ele<= count:
@@ -202,52 +204,107 @@ class plotter:
         """
         matcolor = ['r', 'lightgrey', 'gold', 'w', 'w', 'w']
         opsv.plot_fiber_section(fiber_sec, matcolor=matcolor)
-        plt.title('Section ID:%d' %SecID)
+        plt.title(f'Section :{SecID}')
         plt.axis('equal')
         plt.show()
 
     def plot_model(sfac=None):
         opsv.plot_model(fig_wi_he=(30., 25.),node_supports=True)
-        plt.title('plot_model after defining elements')
+        plt.title('Structure and Frame Integration Points')
         
         fig_lbrt=False
         fmt_model_loads={'color': 'black', 'linestyle': 'solid', 'linewidth': 1.2, 'marker': '', 'markersize': .5}
         node_supports=True
         ax=False
-        opsv.plot_loads_2d(fig_wi_he=(30., 25.),nep=10,fig_lbrt=fig_lbrt,fmt_model_loads=fmt_model_loads,node_supports=node_supports,ax=ax)
-        #opsv.plot_loads_2d()
-        #sfac = 80.
-
-        #opsv.plot_defo()
-        # opsv.plot_defo(sfac)
-        #fmt_interp = {'color': 'blue', 'linestyle': 'solid', 'linewidth': 1.2, 'marker': '.', 'markersize': 6}
+        opsv.plot_loads_2d(fig_wi_he=(30., 25.),nep=10,node_supports=node_supports,ax=ax)
         plt.show()
 
-    def plot_mander(eps_c,f_c,**kwargs):
+    def plot_mander(eps_c : list,f_c : list,points : dict = None,**kwargs) -> None:
         """
             INPUT:
                 eps_c  : list of strain value for confined conc
                 f_c    : list of stress value for confined conc
+                points : Dictionary importants point from stress-strain graph
+                performance : [eps_CP,]
+                **kwargs : plot arguments for example label= "Confined Model"
         """
-        fc_max = max(f_c)
-        fc_max_index = f_c.index(fc_max)
-        epsc_ = eps_c[fc_max_index]
 
         fig, ax = plt.subplots(figsize=(10,10))
         fig.subplots_adjust(bottom=0.15, left=0.2)
         ax.grid()
-        
-        ax.plot(eps_c,f_c,**kwargs)
-        ax.plot(epsc_,fc_max)
+        ax.plot(eps_c,f_c,**kwargs) #stress-stain plot
+
+        if points is not None:
+            eps_co,f_co = points["curvepoints"][0][0],points["curvepoints"][0][1]
+            print(f"confined_yield_point {eps_co,f_co}")
+            ax.plot(eps_co,f_co,label="Yield Point")
+            ax.annotate(f'{round(eps_co,4)}/{round(f_co,2)}', xy=(eps_co, f_co), xytext=(eps_co, f_co),arrowprops=dict(facecolor='black', shrink=0.05))
+            
+            eps_cc,f_cc = points["curvepoints"][1][0],points["curvepoints"][1][1]
+            print(f"confined_max_point {eps_cc,f_cc}")
+            ax.plot(eps_cc,f_cc,label="Max Point")
+            ax.annotate(f'{round(eps_cc,4)}/{round(f_cc,2)}', xy=(eps_cc, f_cc), xytext=(eps_cc, f_cc),arrowprops=dict(facecolor='black', shrink=0.05))
+
+            eps_cu,f_cu = points["curvepoints"][2][0],points["curvepoints"][2][1]
+            print(f"confined_ultimate_point {eps_cu,f_cu}")
+            ax.plot(eps_cu,f_cu,label="Ultimate Point")
+            ax.annotate(f'{round(eps_cu,4)}/{round(f_cu,2)}', xy=(eps_cu, f_cu), xytext=(eps_cu,f_cu),arrowprops=dict(facecolor='black', shrink=0.05))
+
+            eps_cgö,f_cgö = points["performance"][0][0],points["performance"][0][1]
+            ax.plot(eps_cgö,f_cgö,'o',c="r")
+            ax.text(eps_cgö, f_cgö+0.8, f'GÖ {round(eps_cgö,4)}/{round(f_cgö,2)}', style='italic')
+
+            eps_ckh,f_ckh = points["performance"][1][0],points["performance"][1][1]
+            ax.plot(eps_ckh,f_ckh,'o',c="y")
+            ax.text(eps_ckh, f_ckh, f'KH {round(eps_ckh,4)}/{round(f_ckh,2)}', style='italic')
+
+            eps_csh,f_csh = points["performance"][2][0],points["performance"][2][1]
+            ax.plot(eps_csh,f_csh,'o',c="g")
+            ax.text(eps_csh, f_csh, f'SH {round(eps_csh,4)}/{round(f_csh,2)}', style='italic')
+
         ax.set_xlabel('Strain (mm)')  # Add an x-label to the axes.
         ax.set_ylabel('Stress (MPa)')  # Add a y-label to the axes.
         ax.set_title("Mander Model")  # Add a title to the axes.
-        ax.legend(loc='upper left')
         plt.show()
+
+        
+        #fig, ax = plt.subplots(figsize=(10,10))
+        #fig.subplots_adjust(bottom=0.15, left=0.2)
+        #ax.grid()
+        #
+        ##Sargısız Çizimi
+        #ax.plot(eps_c_sargısız,f_c_sargısız,label="UnConfined model")
+        #ax.plot(eps_co,f_co,'o',c="b")
+        #ax.annotate(f'{round(eps_co,4)}/{round(f_co,2)}', xy=(eps_co, f_co), xytext=(eps_co+0.001, f_co+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+        #ax.plot(eps_cu_sargısız,f_c_birim_sargısız,'o',c="b")
+        #ax.annotate(f'{round(eps_cu_sargısız,4)}/{round(f_c_birim_sargısız,2)}', xy=(eps_cu_sargısız, f_c_birim_sargısız), xytext=(eps_cu_sargısız+0.001, f_c_birim_sargısız+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+#
+        ##Sargılı çizimi
+        #ax.plot(eps_c,f_c,label="Confined model")
+        #ax.plot(eps_co,f_co_sargılı,'o',c="g") #strain 0.002 deki stress-strain noktasının çizimi sargılı
+        #ax.annotate(f'{round(eps_co,4)}/{round(f_co_sargılı,2)}', xy=(eps_co, f_co_sargılı), xytext=(eps_co+0.001, f_co_sargılı+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+        #ax.plot(eps_cc,f_cc,'o',c="g")         #Maximum stress noktası sargılı
+        #ax.annotate(f'{round(eps_cc,4)}/{round(f_cc,2)}', xy=(eps_cc, f_cc), xytext=(eps_cc+0.001, f_cc+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+        #ax.plot(eps_cu,f_c_birim,'o',c="g")    #Ultimate nokta sargılı
+        #ax.annotate(f'{round(eps_cu,4)}/{round(f_c_birim,2)}', xy=(eps_cu, f_c_birim), xytext=(eps_cu-0.001, f_c_birim-2),arrowprops=dict(facecolor='black', shrink=0.05))
+        #
+        ##Performans Noktaları
+        #ax.plot(eps_cgö,f_cgö,'o',c="r",label = f"GÖ-{round(eps_cgö,4)}/{round(f_cgö,2)}")
+        #ax.plot(eps_ckh,f_ckh,'o',c="y",label = f"KH-{round(eps_ckh,4)}/{round(f_ckh,2)}")
+        #ax.plot(eps_csh,f_csh,'o',c="b",label = f"SH-{round(eps_csh,4)}/{round(f_csh,2)}")
+#
+        #ax.set_xlabel('Strain (mm)')  # Add an x-label to the axes.
+        #ax.set_ylabel('Stress (MPa)')  # Add a y-label to the axes.
+        #ax.set_title("Mander Model")  # Add a title to the axes.
+        #ax.legend(loc='lower right')
+        #plt.show()
+
+
+        
     
     def plot_Moment_Curvature(Curvature : list, LoadFactor : list,**kwargs) -> None:
         plt.rcParams.update({'font.size': 16})
-        fig, ax = plt.subplots(figsize=(25,10))
+        fig, ax = plt.subplots(figsize=(25,10))      
         ax.grid()
         ax.plot(Curvature,LoadFactor,**kwargs)
         ax.axhline(0, color='black', lw=2)

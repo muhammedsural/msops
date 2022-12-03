@@ -3,8 +3,6 @@ import math as mt
 import openseespy.opensees as ops
 
 class FundemantelParameters:
-    def __init__(self) -> None:
-        pass
     def __init__(self,columndict,nodalOutput) -> None:
         #self.columndict   = columndict
         #self.nodalOutput  = nodalOutput
@@ -62,19 +60,21 @@ class FundemantelParameters:
 class Performance:
     def __init__(self) -> None:
         pass
-    def __init__(self,eps_su,
+    """def __init__(self,eps_su,
                  h,bw,s,f_sy,f_co,pas_payı,etriye_çapı,boyuna_donatı_çapı,numBarsTop,numBarsBot,gövde_donatı_adeti,x_koladeti,y_koladeti,
                  ultimate_curvature,yield_curvature,Lp,Ls) -> None:
         self.eps_su = eps_su
         self.h,self.bw,self.s,self.f_sy,self.f_co,self.pas_payı,self.etriye_çapı,self.boyuna_donatı_çapı,self.numBarsTop,self.numBarsBot,self.gövde_donatı_adeti,self.x_koladeti,self.y_koladeti = h,bw,s,f_sy,f_co,pas_payı,etriye_çapı,boyuna_donatı_çapı,numBarsTop,numBarsBot,gövde_donatı_adeti,x_koladeti,y_koladeti
         self.ultimate_curvature,self.yield_curvature,self.Lp,self.Ls = ultimate_curvature,yield_curvature,Lp,Ls
         
-        self.steelstrain_Perform_Level = self.Steelstrain_Perform_Level(eps_su=self.eps_su)
-        self.concstrain_Perform_Level  = self.Concstrain_Perform_Level(self.h,self.bw,self.s,self.f_sy,self.f_co,self.pas_payı,self.etriye_çapı,self.boyuna_donatı_çapı,self.numBarsTop,self.numBarsBot,self.gövde_donatı_adeti,self.x_koladeti,self.y_koladeti)
-        self.rotation_Perform_Level    = self.Rotation_Perform_Level(self.ultimate_curvature,self.yield_curvature,self.Lp,self.Ls,db=self.boyuna_donatı_çapı)
+        steelStrainPrfL = [round(strain,4) for strain in self.Steelstrain_Perform_Level(eps_su=self.eps_su)]
+        concStrainPrfL  = [round(strain,4) for strain in self.Concstrain_Perform_Level(self.h,self.bw,self.s,self.f_sy,self.f_co,self.pas_payı,self.etriye_çapı,self.boyuna_donatı_çapı,self.numBarsTop,self.numBarsBot,self.gövde_donatı_adeti,self.x_koladeti,self.y_koladeti)]
+        rotationPrfL    = [round(strain,4) for strain in self.Rotation_Perform_Level(self.ultimate_curvature,self.yield_curvature,self.Lp,self.Ls,db=self.boyuna_donatı_çapı)]
+
+        self.steelstrain_Perform_Level = steelStrainPrfL
+        self.concstrain_Perform_Level  = concStrainPrfL
+        self.rotation_Perform_Level    = rotationPrfL"""
         
-        
-        pass
     
     def Steelstrain_Perform_Level(self,eps_su):
         """

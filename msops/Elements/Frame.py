@@ -32,7 +32,7 @@ class ElasticBeamColumn(ABC):
     Integration : Integration = field(default_factory=Integration)
     MaxIter     : int = field(default_factory=int)
     Tolerance   : int = field(default_factory=int)
-    Mass        : int = field(default_factory=int)
+    Mass        : float = field(default_factory=float)
     Length      : float = 0
     
     def frame_length(self) -> None:
@@ -61,6 +61,8 @@ class ElasticBeamColumn(ABC):
 class Column(ElasticBeamColumn):
     """ ElasticBeamcolumn for column elements"""
     frameType : FrameType = FrameType.Column
+    #iSection  : RecSection = field(default_factory=RecSection)
+    #jSection  : RecSection = field(default_factory=RecSection)
     
     def __post_init__(self):
         self.frame_length()
@@ -74,7 +76,6 @@ class Column(ElasticBeamColumn):
 class Beam(ElasticBeamColumn):
     """ ElasticBeamcolumn for column elements"""
     frameType : FrameType = FrameType.Beam
-    mass : float = 0.
     
     def __post_init__(self):
         self.frame_length()
@@ -96,6 +97,7 @@ class FrameDatas:
         """Find all frames with a particular role in the employee list"""
         return [frame for frame in self.Frames if frame.frameType is frameType]
 
+
 """def main() -> None:
 
     #dbFrame = FrameDatas()
@@ -108,7 +110,7 @@ class FrameDatas:
     
     #Create Section
     #,coreConc=None,coverConc=None,matRebars=None
-    section = RecSection(name='C4040',b=40,h=40,numrebars=[3,2,3],dia_rebars=[1,1],fiberData=None)
+    section = RecSection(Id=1,name='C4040',b=40,h=40,cover=2.5,k=1,numrebars=[3,2,3],dia_rebars=[1,1],fiberData=None)
     
     Intg  = Integration(Id=1,IntegrationType=IntegrationType.HingeMidpoint,Args=[section,0.5,section,0.5,section])
     print(Intg)
@@ -117,11 +119,9 @@ class FrameDatas:
     #,Mass=0.,Length=0.
     frame1 = Column(Id=1,EleNodes=[node1,node2],TransfTag="PDelta",Integration=Intg,MaxIter=300,Tolerance=0.01)
     print(frame1)
-    frame2 = Beam(Id=1,EleNodes=[node1,node2],TransfTag="PDelta",Integration=Intg,MaxIter=300,Tolerance=0.01)
+    frame2 = Beam(Id=2,EleNodes=[node1,node2],TransfTag="PDelta",Integration=Intg,MaxIter=300,Tolerance=0.01)
     print(frame2)
     
-
-
 if __name__ == "__main__":
     main()"""
 

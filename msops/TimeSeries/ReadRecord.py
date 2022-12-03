@@ -3,14 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def calc_timegap(Td,damp_ratio,T):
+def calc_timegap(Td,damp_ratio,T) -> float:
         """
         Td          : Kuvvetli yer hareketi süresi
         damp_ratio  : Yapının sönüm oranı
         T           : Yapının doğal titreşim periyodu
 
         """
-        R_rest = Td*(0.05/damp_ratio)*((21.8559*T+0.0258)*(Td**(-0.9982))+0.0214)
+        R_rest = Td*(0.05/damp_ratio)*(((21.8559*T)+0.0258)*(Td**(-0.9982))+0.0214)
         R_timegap = round(R_rest,0)
         return R_timegap
     
@@ -32,11 +32,12 @@ def ReadRecord (filePath:str,gap:float,g=9.81,plot=1):
                 dt = float(line.replace(",","").replace("SEC","").split()[3])
     time = np.arange(0,npts*dt,dt)
     
-    timegap = np.arange(time[-1],time[-1]+gap+dt,dt)
-    accgap  = np.arange(0,len(timegap))*0
+    if gap is not None:
+        timegap = np.arange(time[-1],time[-1]+gap+dt,dt)
+        accgap  = np.arange(0,len(timegap))*0
     
-    time = np.append(time,timegap)
-    acceleration = np.append(acceleration,accgap)
+        time = np.append(time,timegap)
+        acceleration = np.append(acceleration,accgap)
     
     if plot == 1:
         import matplotlib.pyplot as plt 
@@ -131,3 +132,10 @@ def main_after_record(eventname="Mammoth_Lakes",plot=False):
     return mainafterTime,mainafterAcc,dt
           #plt.figure(figsize=[60,30])
             #plt.plot(mainafterTime[i],mainafterAcc[i]) 
+
+def ChangeTimeSeriesForPGA(acceleration : list,targetPGA : float) -> list:
+    """ Zaman serisini PGA değerine göre verilen ivme değeri ile orantılayarak yeniden oluşturur."""
+    realPGA = max(acceleration)
+    coef = targetPGA/realPGA
+    newTimeSeries = [acc*coef for acc in acceleration]
+    return newTimeSeries

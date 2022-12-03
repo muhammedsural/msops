@@ -24,14 +24,15 @@ def setup_package():
     author_email = "muhammedsural@gmail.com",
     url = 'https://github.com/muhammedsural/msops',
     download_url = 'https://github.com/muhammedsural/msops/archive/refs/tags/0.4.1.tar.gz',
-    install_requires=[            
-          "EzGM==1.6.5.5",
+    python_requires ='<=3.9.0',
+    install_requires=[
           "numpy==1.22.4",
-          "openseespy==3.4.0.1",
-          "openseespywin==3.4.0.1.1",
+          "openseespy>=3.4.0.2",
+          "openseespywin>=3.3.0.1",
           "opsvis==1.0.20",
-          "pandas==1.2.5",
-          "scipy==1.6.3"
+          "pandas==1.5.1",
+          "scipy==1.9.3",
+          "matplotlib==3.5.2"
       ],
     classifiers=['Development Status :: 3 - Alpha',    
                  'Intended Audience :: Developers',      

@@ -1,7 +1,7 @@
 EzGM==1.6.5.5
 numpy==1.22.4
-openseespy==3.4.0.1
-openseespywin==3.4.0.1.1
+openseespy==3.3.0.1
+openseespywin==3.3.0.1
 opsvis==1.0.12
-pandas==1.2.5
+pandas==1.5.1
 scipy==1.6.3

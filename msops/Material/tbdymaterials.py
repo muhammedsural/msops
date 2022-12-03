@@ -9,28 +9,55 @@ def tbdy_mander(
                ):
 
     """
+    
     INPUT:
 
-    celiksınıfı         : "S220","S420","B420C","B500C" çelik modelleri girilebilir sadece etriye için
-    f_co                : Beton basınç dayanımı
-    bw                  : Kesitin genişliği [mm]
-    h                   : Kesitin yüksekliği
-    s                   : Etriye aralığı
-    A_s                 : Boyuna donatı alanı
-    etriye_çapı         : Etriye donatı çapı (mm)
-    boyuna_donatı_çapı  : Boyuna donatı çapı (mm)
-    pas_payı            : Beton pas payı (mm)
-    baslık_donatı_adeti : Kesit başlık bölgesindeki donatı sayısı 2 başlıkta bulunan toplam adet
-    gövde_donatı_adeti  : Kesit gövde bölgesindeki donatı sayısı 2 tarafta bulunan toplam adet
-    x_koladeti          : x eksenini kesen sargı kol adeti
-    y_koladeti          : y eksenini kesen sargı kol adeti
+        celiksınıfı         : "S220","S420","B420C","B500C" çelik modelleri girilebilir sadece etriye için
+        f_co                : Beton basınç dayanımı
+        bw                  : Kesitin genişliği [mm]
+        h                   : Kesitin yüksekliği
+        s                   : Etriye aralığı
+        A_s                 : Boyuna donatı alanı
+        etriye_çapı         : Etriye donatı çapı (mm)
+        boyuna_donatı_çapı  : Boyuna donatı çapı (mm)
+        pas_payı            : Beton pas payı (mm)
+        baslık_donatı_adeti : Kesit başlık bölgesindeki donatı sayısı 2 başlıkta bulunan toplam adet
+        gövde_donatı_adeti  : Kesit gövde bölgesindeki donatı sayısı 2 tarafta bulunan toplam adet
+        x_koladeti          : x eksenini kesen sargı kol adeti
+        y_koladeti          : y eksenini kesen sargı kol adeti
 
 
     OUTPUT:
-    unconfined,confined halinde iki sözlük verir. içerisinde :
-        eps_c: 0 dan ultimate strain değerine kadar 0.00001 adımla oluşturulmuş liste
-        f_c  : Her eps_c değerine karşılık hesaplanmış beton gerilmesi listesi
-        gerekli değerlerin olduğu bir liste vardır.
+        unconfined,confined halinde iki sözlük verir. içerisinde :
+            unconfined = {
+                            "strain_stress" : [eps_c_sargısız,f_c_sargısız],
+                            "values" :[fc1U,eps1U,fc2U,eps2U]
+                        }
+            confined   = {
+                            "strain_stress" : [eps_c,f_c,],
+                            "values"        : [fc1C,eps1C,fc2C,eps2C]
+                        }
+
+            eps_c: 0 dan ultimate strain değerine kadar 0.00001 adımla oluşturulmuş liste
+            f_c  : Her eps_c değerine karşılık hesaplanmış beton gerilmesi listesi
+            gerekli değerlerin olduğu bir liste vardır.
+    
+    INFO :
+        f_cc -> Maximum stress sargılı beton için
+        eps_cc -> Sargılı betonda maximum stress anında strain değeri
+        f_co -> Maximum stress sargısız beton için
+        eps_co -> Sargısız betonda maximum stress anındaki strain değeri
+        f_cu -> Sargılı betonda ultimate anındaki stress değeri
+        eps_cu -> Sargılı betonda ultimate anındaki strain değeri
+
+        DENKLEMLER
+        f_c = (f_cc*x*r)/(r-1+x**r)
+        f_cc = lamda_c*f_co
+        lamda_c = (2.254*(1+7.94*(f_e/f_co))**0.5) - 2*(f_e/f_co) - 1.254
+        f_ex = k_e * ro_x * f_yw ; f_ey = k_e * ro_y * f_yw ; 
+        k_e = (1-(toplam_ai**2 /(6*bo*h0)))*(1-s/2bo)*(1-s/2ho)*(1-As/bo*ho)**-1
+        x = eps_c/eps_cc ; eps_cc = eps_co*(1+5*(lamda_c-1)) ; eps_co = 0.002 
+        r = Ec/(Ec-Esec) ; Ec = 5000*(f_co)**0.5 [MPa] ; Esec = f_cc/eps_cc
 
     """
     eps_co = 0.002
@@ -54,7 +81,6 @@ def tbdy_mander(
     #numBarsTop, numBarsBot, numBarsIntTot
 
     bar_area = 3.14*boyuna_donatı_çapı**2/4
-
     top_bar_area = numBarsTop * bar_area
     int_bar_area = gövde_donatı_adeti * bar_area
     bot_bar_area = numBarsBot * bar_area
@@ -85,9 +111,17 @@ def tbdy_mander(
     c = 1-(s/(2*h_0))
     d = (1-(A_s/(b_0*h_0)))**-1
     k_e =round((a*b*c*d),3)
+    #print(f'toplam_ai2 = {toplam_ai2_tot} b_0 = {b_0} h_0 = {h_0} -> a = {a}')
+    #print(f's = {s} b_0 = {b_0}  -> b = {b}')
+    #print(f's = {s} h_0 = {h_0}  -> c = {c}')
+    #print(f'A_s = {A_s} b_0 = {b_0} h_0 = {h_0} -> d = {d}')
+    #print(f'a = {a} b = {b} c = {c}  d = {d} -> k_e = {k_e}')
+
     #ro_x = A_sx/(s*b_0)
     #ro_y = A_sx/(s*h_0)
+    
     #Hacimsel oranların bulunması
+
     #check kol adetleri
     x_kol_max = max(numBarsBot,numBarsTop)
     y_kol_max = gövde_donatı_adeti+2 #Çift sıra başlık donatısı göz ardı edilmiştir.
@@ -109,14 +143,16 @@ def tbdy_mander(
     f_e=(f_ex+f_ey)/2
     f_e_sargısız = 0
 
+    #lamda_c değerlerinin bulunması
     lamda_c          = 2.254*mt.sqrt(1+7.94*(f_e/f_co))-(2*f_e/f_co)-1.254
     lamda_c_sargısız = 2.254*mt.sqrt(1+7.94*(f_e_sargısız/f_co))-(2*f_e_sargısız/f_co)-1.254
     
-    f_cc = lamda_c*f_co
-    f_cc_sargısız = lamda_c_sargısız*f_co
+    #Akma gerilmelerinin bulunması
+    f_cc = lamda_c*f_co                     #sargılı beton akma stress
+    f_cc_sargısız = lamda_c_sargısız*f_co   #sargısız beton akma stress
 
-    eps_cc = eps_co*(1+5*(lamda_c-1))
-    eps_cc_sargısız = eps_co*(1+5*(lamda_c_sargısız-1))
+    eps_cc = eps_co*(1+5*(lamda_c-1))                   #sargılı beton akma strain
+    eps_cc_sargısız = eps_co*(1+5*(lamda_c_sargısız-1)) #sargısız beton akma strain
 
     E_c = 5000*mt.sqrt(f_co)
 
@@ -126,22 +162,27 @@ def tbdy_mander(
     r = E_c/(E_c-E_sec)
     r_sargısız = E_c/(E_c-E_sec_sargısız)
 
-    eps_cu = 0.004+(1.4*((ro_x+ro_y)/2)*f_sy*eps_su)/f_cc
-    eps_cu_sargısız=0.0035
-
-    eps_c = np.arange(0,eps_cu,0.00001)
-    eps_c_sargısız = np.arange(0,eps_cu_sargısız,0.00001)
-
     #Performans düzeyleri için beton birim kısalmaları:
     alfa_se = a*b*c
     ro_sh_min = min(ro_x,ro_y)
     omega_we =alfa_se*ro_sh_min*f_sy/f_co
     eps_cgö = 0.0035+0.04*mt.sqrt(omega_we) #<= 0.018   
+    #print(f'a = {a}; b = {b}, c = {c} -> alfa_se {alfa_se} ')
+    #print(f'ro_x = {ro_x}; ro_y = {ro_y} ->  ro_sh_min {ro_sh_min}')
+    #print(f'alfa_se {alfa_se}; ro_sh_min {ro_sh_min}; f_sy/f_co = {f_sy}/{f_co}= {f_sy/f_co} -> omega_we = {omega_we}')
+    #print(f'eps_c_GÖ = {eps_cgö} ')
 
     if eps_cgö > 0.018:
         eps_cgö = 0.018
     x_gö = eps_cgö/eps_cc
     f_cgö = (f_cc*x_gö*r)/(r-1+x_gö**r)
+
+    eps_cu = 0.004+(1.4*((ro_x+ro_y)/2)*f_sy*eps_su)/f_cc   #sargılı beton max strain
+    if eps_cu < eps_cgö:
+        print("hesaplanan ultimate strain değeri göçmenin önlenmesi birim şekildeğiştirme değerinden küçük geldi! değer büyütülerek iterasyona devam edildi")
+        eps_cu = eps_cgö*1.1
+    #print(f'ro_x+ro_y = {ro_x+ro_y} f_sy = {f_sy} eps_su = {eps_su} f_cc = {f_cc}')
+    eps_cu_sargısız=0.0035                                  #sargısız beton max strain
 
     eps_ckh=eps_cgö*0.75
     x_kh = eps_ckh/eps_cc
@@ -157,13 +198,16 @@ def tbdy_mander(
     x_sargısız=[]
     f_c = []
     f_c_sargısız =[]
-
+    eps_c = np.arange(0,eps_cu,0.00001)
+    eps_c_sargısız = np.arange(0,eps_cu_sargısız,0.00001)
+    #Sargısız model için iterasyon
     for eps in eps_c_sargısız:
         x_birim_sargısız = (eps/eps_cc_sargısız)
         x_sargısız.append(x_birim_sargısız)
         f_c_birim_sargısız = (f_cc_sargısız*x_birim_sargısız*r_sargısız)/(r_sargısız-1+x_birim_sargısız**r_sargısız)
         f_c_sargısız.append(f_c_birim_sargısız)
 
+    #Sargılı model için iterasyon
     for eps in eps_c:
         x_birim = (eps/eps_cc)
         x.append(x_birim)
@@ -171,6 +215,38 @@ def tbdy_mander(
         f_c.append(f_c_birim)
         if eps == eps_co:
             f_co_sargılı = f_c_birim
+
+    
+    fig, ax = plt.subplots(figsize=(10,10))
+    fig.subplots_adjust(bottom=0.15, left=0.2)
+    ax.grid()
+    
+    #Sargısız Çizimi
+    ax.plot(eps_c_sargısız,f_c_sargısız,label="UnConfined model")
+    ax.plot(eps_co,f_co,'o',c="b")
+    ax.annotate(f'{round(eps_co,4)}/{round(f_co,2)}', xy=(eps_co, f_co), xytext=(eps_co+0.001, f_co+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+    ax.plot(eps_cu_sargısız,f_c_birim_sargısız,'o',c="b")
+    ax.annotate(f'{round(eps_cu_sargısız,4)}/{round(f_c_birim_sargısız,2)}', xy=(eps_cu_sargısız, f_c_birim_sargısız), xytext=(eps_cu_sargısız+0.001, f_c_birim_sargısız+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+
+    #Sargılı çizimi
+    ax.plot(eps_c,f_c,label="Confined model")
+    ax.plot(eps_co,f_co_sargılı,'o',c="g") #strain 0.002 deki stress-strain noktasının çizimi sargılı
+    ax.annotate(f'{round(eps_co,4)}/{round(f_co_sargılı,2)}', xy=(eps_co, f_co_sargılı), xytext=(eps_co+0.001, f_co_sargılı+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+    ax.plot(eps_cc,f_cc,'o',c="g")         #Maximum stress noktası sargılı
+    ax.annotate(f'{round(eps_cc,4)}/{round(f_cc,2)}', xy=(eps_cc, f_cc), xytext=(eps_cc+0.001, f_cc+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+    ax.plot(eps_cu,f_c_birim,'o',c="g")    #Ultimate nokta sargılı
+    ax.annotate(f'{round(eps_cu,4)}/{round(f_c_birim,2)}', xy=(eps_cu, f_c_birim), xytext=(eps_cu-0.001, f_c_birim-2),arrowprops=dict(facecolor='black', shrink=0.05))
+    
+    #Performans Noktaları
+    ax.plot(eps_cgö,f_cgö,'o',c="r",label = f"GÖ-{round(eps_cgö,4)}/{round(f_cgö,2)}")
+    ax.plot(eps_ckh,f_ckh,'o',c="y",label = f"KH-{round(eps_ckh,4)}/{round(f_ckh,2)}")
+    ax.plot(eps_csh,f_csh,'o',c="b",label = f"SH-{round(eps_csh,4)}/{round(f_csh,2)}")
+
+    ax.set_xlabel('Strain (mm)')  # Add an x-label to the axes.
+    ax.set_ylabel('Stress (MPa)')  # Add a y-label to the axes.
+    ax.set_title("Mander Model")  # Add a title to the axes.
+    ax.legend(loc='lower right')
+    plt.show()
     
     fc1U  = -f_co          # UNCONFINED concrete (todeschini parabolic model), maximum stress
     eps1U = -eps_c_sargısız[f_c_sargısız.index(max(f_c_sargısız))]      # strain at maximum strength of unconfined concrete
@@ -190,8 +266,25 @@ def tbdy_mander(
                     "strain_stress" : [eps_c,f_c,],
                     "values"        : [fc1C,eps1C,fc2C,eps2C]
                 }
-    
-    return(unconfined,confined)
+    collapse_pr   = [eps_cgö,f_cgö]
+    life_safety   = [eps_ckh,f_ckh]
+    immediate_occ = [eps_sh,f_csh]
+
+    confined_max_point       = [eps_cc,f_cc]
+    unconfined_max_point     = [eps_cc,f_cc_sargısız]
+
+    unconfined_yield_point   = [eps_co,f_co]
+    confined_yield_point     = [eps_co,f_co_sargılı]
+
+    confined_ultimate_point  = [eps_cu,f_c_birim]
+    unconfined_ultimate_point= [eps_cu_sargısız,f_c_birim_sargısız]
+
+    important_points = {
+                            "performance" : [collapse_pr,life_safety,immediate_occ],
+                            "curvepoints" : [confined_yield_point,confined_max_point,confined_ultimate_point]
+                       }
+
+    return(unconfined,confined,important_points)
 
 def tbdy_steel(celiksınıfı,E_s = 2*10**5):
 

@@ -31,11 +31,41 @@ class Integration:
         Attributes :
             Id : int
             IntegrationType : IntegrationType 
-            Args : list  -> for example if you are create HingeMidpoint integration type args must include [sectionI,lpl,sectionj,lpj,sectionElastic]
+            Args : list  -> for example if you are create HingeMidpoint integration type, args must include [sectionI_id,lpl,sectionj_id,lpj,sectionElastic_id]
     """
     Id : int
     IntegrationType : IntegrationType 
     Args : list = field(default_factory=list)
     
     def __repr__(self) -> str:
-        return f'IntegrationId : {self.Id}'
+        return f'IntegrationId : {self.Id}, Integration type : {self.IntegrationType}, Integration arguments : {self.Args}'
+
+@dataclass
+class IntegrationDatas:
+    Integrations : list[Integration] = field(default_factory=list)
+    
+    def add_integration(self, integration: Integration) -> None:
+        """Add an ElasticBeamColumn to the list of Frames."""
+        self.Integrations.append(integration)
+
+    def delete_integration(self):
+        """Deleted integration"""
+        pass
+
+    def update_integration(self,**kwargs):
+        """Update integration"""
+        pass
+
+    def Get_integration(self,IntegrationId : int) -> None:
+        """Get integration"""
+        for integ in self.Integrations:
+            if IntegrationId == integ.Id:
+                return integ
+            else:
+                continue
+
+    def Get_all_integration(self):
+        """Get all defined integration"""
+        pass
+
+

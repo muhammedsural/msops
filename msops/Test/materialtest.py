@@ -13,5 +13,6 @@ from msops.Material.material import opsmaterial
 #damage2 = 0.  #damage due to energy: D2(Eii/Eult)
 #beta = 0.     #power used to determine the degraded unloading stiffness based on ductility, mu-beta (optional, default=0.0)
 
-inputs = [60.0,0.003,78.0,0.024,61.2,0.1,-60.0,-0.003,-78.0,-0.024,-61.2,-0.1,1.0,1.0,0.0,0.0,0.0]
+inputs = [60.0,0.003, 78.0,0.024, 61.2,0.1, -60.0,-0.003, -78.0,-0.024, -61.2,-0.1, 0.1,0.5,0.0,0.0,0.0]
 opsmaterial(MaterialTypeIndex=11,matTag=1,inputArray=inputs,young_Module=30_000_000,stress_strain_test=True)
+

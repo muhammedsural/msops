@@ -103,7 +103,7 @@ class RecSection:
     fiberData          :  Optional[list[float]]  = None
     
     def __repr__(self) -> str:
-        return f'Id : {self.Id}, name = {self.name}, width = {self.b}, height = {self.h},area = {self.area}, I22 = {self.I22}, I33 = {self.I33} coreConcId = {self.coreConc.matTag}, coverConcId = {self.coverConc.matTag}, steelId = {self.matRebars.matTag}, rebars = {self.numrebars}, diarebars = {self.dia_rebars}  '
+        return f'Id : {self.Id}, name = {self.name}, width = {self.b}, height = {self.h},area = {self.area}, I22 = {self.I22}, I33 = {self.I33} coreConcId = {self.coreConc.matTag}, coverConcId = {self.coverConc.matTag}, steelId = {self.matRebars.matTag}, rebars = {self.numrebars}, diarebars = {self.dia_rebars}'
     
     def calcArea(self) -> None:
         """Calculate section area"""
@@ -117,7 +117,7 @@ class RecSection:
         """Calculate moment of inertia direction 3"""
         return self.k*self.h*self.b**3/12
     
-    def set_reinforcement_conc(self,fck:int=25,s:int=150,etriye_capi:int=10,x_koladeti:int=2,y_koladeti:int=2,plot=True) -> None:
+    def set_reinforcement_conc(self,fck:int=25,s:int=150,etriye_capi:int=10,x_koladeti:int=2,y_koladeti:int=2,tension=True,plot=True) -> None:
         """
         TBDY deki mander modeline göre çekirdek ve kabuk betonun gerilme-şekildeğiştirme değerlerinin bulunması ve RecSection içine gömülmesi
         
@@ -136,7 +136,7 @@ class RecSection:
         NumBarsInterior    = self.numrebars[1] 
         #==================================================================================================================================
         # Mander modeline göre stress ve strain değerlerinin bulunması
-        unconfined,confined=tbdy_mander("B500C",
+        unconfined,confined,impoints=tbdy_mander("B500C",
                                         fck,
                                         self.b,
                                         self.h,
@@ -164,9 +164,17 @@ class RecSection:
         eps1C = confined['values'][1] # strain at maximum stres
         fc2C  = confined['values'][2] # ultimate stress
         eps2C = confined['values'][3] # strain at ultimate stress
-        self.coreConc  =opsmaterial(2,2,[fc1C,eps1C,fc2C,eps2C],stress_strain_test=False)
-        self.coverConc =opsmaterial(2,1,[fc1U,eps1U,fc2U,eps2U],stress_strain_test=False)
-        
+        # tensile-strength properties~
+        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        if tension is True:
+            Lamda = 0.1        # ratio between unloading slope at eps2 and initial slope Ec
+            fct = 0.10*fck  # tensile strength +tension
+            Ets = fct/0.002     # tension softening stiffness
+            tension_array = [fct,Ets,Lamda]
+            for item in tension_array:
+                confined["values"].append(item)
+                unconfined["values"].append(item)
+                            
         if plot:
             plotter.plot_mander(confined['strain_stress'][0],confined['strain_stress'][1],label="Confined model")
             plotter.plot_mander(unconfined['strain_stress'][0],unconfined['strain_stress'][1],label="Unconfined model")
@@ -230,7 +238,7 @@ class SectionDatas:
         """Find all frames with a particular role in the employee list"""
         return [section for section in self.Sections if section.Id in SectionIdList]
 
-if __name__ == '__main__':
+"""if __name__ == '__main__':
     sec = RecSection(Id=1,name='C4040',b=700,h=300,cover=25,k=1,numrebars=[6,2,6],dia_rebars=[14,14,14])
     sec.set_reinforcement_conc(plot=False)
-    print(sec)
+    print(sec)"""

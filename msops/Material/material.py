@@ -1,12 +1,9 @@
-from ast import Return
 from dataclasses import dataclass,field,asdict
 from typing import Dict, Optional
 from msops.Units.Unit import Unit as un
 import openseespy.opensees as ops
 import numpy as np
 import matplotlib.pyplot as plt
-# https://github.com/jupyter-widgets/ipywidgets/issues/1853
-from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
 
 class MaterialPropManager:
     
@@ -69,8 +66,6 @@ class MaterialPropManager:
         axModel.set_ylabel('Stress')
         axModel.set_title(Name + ' Material Response')
         plt.show()
-        show_inline_matplotlib_plots()
-
 
 class defaultopsMat():
     
@@ -163,7 +158,6 @@ class defaultopsMat():
         axModel.set_ylabel('Stress')
         axModel.set_title(Name + ' Material Response')
         plt.show()
-        show_inline_matplotlib_plots()
 
 @dataclass
 class Concrete():
@@ -186,8 +180,10 @@ class Concrete():
         self.Ec = Ec
         
     def __post_init__(self):
-        self.__calc_young_modules()
-        self.__calc_shear_modules()
+        if self.Ec is None:
+            self.__calc_young_modules()
+        if self.shear_modules is None:
+            self.__calc_shear_modules()
         
     def asdict():
         return asdict()
@@ -252,7 +248,7 @@ class opsmaterial:
                             23:'SteelMPF'         ,
                             24:'TzSimple1'        ,
                             25:'UVCuniaxial'      ,
-                            26:'ViscousDamper'    
+                            26:'ViscousDamper'    ,
         matTag =
         inputArray =
         young_Module =
@@ -275,7 +271,6 @@ class opsmaterial:
             
         if self.stress_strain_test is True:
             self.testMaterial(materialName=material,scaleFactor=self.inputArray[3])
-        
     
     def get_MaterialType(self) -> str:
         matType= {
@@ -305,7 +300,7 @@ class opsmaterial:
             23:'SteelMPF'         ,
             24:'TzSimple1'        ,
             25:'UVCuniaxial'      ,
-            26:'ViscousDamper'    
+            26:'ViscousDamper'    ,
         }
         return matType[self.MaterialTypeIndex]
     
@@ -344,7 +339,6 @@ class opsmaterial:
         OpenSeesMaterialDefaultValues['TzSimple1'         ]      =[1,40.0,0.01,0.0]
         OpenSeesMaterialDefaultValues['UVCuniaxial'       ]      =[29000.0,60.0,122.63,19.74,143.49,248.14,2,31638.0,277.32,1548.6,9.04]
         OpenSeesMaterialDefaultValues['ViscousDamper'     ]      =[29000.0,200.0,0.3,0.0,1,1e-6,1e-10,15.0]
-        
         return OpenSeesMaterialDefaultValues
 
     def defineStrainHistory(self,peaksArray,scaleFactor,nSteps,nCycles):
@@ -408,13 +402,11 @@ class opsmaterial:
         axModel.set_ylabel('Stress')
         axModel.set_title(Name + ' Material Response')
         plt.show()
-        show_inline_matplotlib_plots()
         
 
-
-def main() -> None:
-    """ Main function"""
-    mat = opsmaterial(MaterialTypeIndex=2,matTag=1,inputArray=None,young_Module=None,stress_strain_test=True)
-
-if __name__ == "__main__":
-    main()
+#def main() -> None:
+#    """ Main function"""
+#    mat = opsmaterial(MaterialTypeIndex=2,matTag=1,inputArray=None,young_Module=None,stress_strain_test=True)
+#
+#if __name__ == "__main__":
+#    main()

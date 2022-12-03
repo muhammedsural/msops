@@ -8,6 +8,7 @@ import logging
 from datetime import datetime
 import sys
 import pandas as pd
+from scipy.integrate import cumtrapz
 
  
 class opsbuild:
@@ -1015,6 +1016,7 @@ class opsbuild:
             eleSection_top = {}
             eleSection_bot = {}
             eleSection_steel = {}
+            
             for ele in ops.getEleTags():
                 # Compression fiber
                 fiber_stressStrain_top   = ops.eleResponse(ele, 'section', 'fiber', str(0.30/2),str(0), str(3), 'stressStrain' )
@@ -1392,6 +1394,8 @@ class opsbuild:
         Eds = np.zeros((n_steps+100, nels, 6))
         step = 1           # current step number
         
+        MomRot = pd.DataFrame(columns=["Eletags","iMoment","iRotation","jMoment","jRotation","iTotalEnergy","jTotalEnergy","TotalMemberEnergy"],index=ops.getEleTags())
+        
         
         ok = 0
 
@@ -1426,7 +1430,6 @@ class opsbuild:
                     nodalOutput[node]["nodeY_disp"].append(ydisp)
                     nodalOutput[node]["node_rotation"].append(zrot)
                     
-                
                 if outEleForces:
                     for ele in ops.getEleTags(): #eleman tagleri içinde dönüyorum
                         forces = ops.eleForce(ele,-1) #eleman kuvvetlerini atıyorum
@@ -1442,7 +1445,6 @@ class opsbuild:
                             eleForces[ele] = np.append(eleForces[ele],forces)
                             #eleForces1[ele] = np.append(eleForces1[ele],forces)
                     eleForces1 = pd.DataFrame(columns=["Ni","Nj","Ti","Tj","Mi","Mj"],index=eleForces.keys())
-                
                     #for key in eleForces.keys():
                     #    eleForces1["Mi"] = eleForces[key][2::6]
                     #    eleForces1["Ti"] = eleForces[key][1::6]
@@ -1456,6 +1458,7 @@ class opsbuild:
                             nodalDisps[node] = np.append(nodalDisps[node],disps)
                         else:
                             nodalDisps[node] = np.append(nodalDisps[node],disps) 
+                
                 if outFiber[0]:
                     for ele in ops.getEleTags():
                         if ele not in sectionOutput.keys():
@@ -1513,68 +1516,80 @@ class opsbuild:
                                                   ops.nodeDisp(nd2)[0],
                                                   ops.nodeDisp(nd2)[1],
                                                   ops.nodeDisp(nd2)[2]]
+                
                 if outSection:
-                    for ele in ops.getEleTags():
-                        if ele not in sectionOutput.keys():
-                            """
-                            sectionOutput[ele]={"axial_moments_i"    :[],
-                                                "axial_curvatures_i" :[],
-                                                "axial_moments_j"    :[],
-                                                "axial_curvatures_j" :[],
-                                                "section_rotations_i":[],
-                                                "section_rotations_j":[],
-                                                "section_moments_i"  :[],
-                                                "section_moments_j"  :[],
-                                                }
-                            """
-                            sectionOutput[ele]={
-                                                "force"         : [],
-                                                "ibasicForce"   : [],
-                                                "jbasicForce"   : [],
-                                                "itotalRot"     : [],
-                                                "iplasticRot"   : [],
-                                                "ielasticRot"   : [],
-                                                "jtotalRot"     : [],
-                                                "jplasticRot"   : [],
-                                                "jelasticRot"   : [],
-                                                "intgLocation"  : ops.eleResponse(ele,"integrationPoints"),
-                                                "intgForces"    : [],
-                                                "intgCurvature" : []
-                                               }
-                               
-                        intgpnt = len(ops.sectionLocation(ele))
+
+                    """for ele in ops.getEleTags():
+                        MomRot["Eletags"][ele] = ele
+                        MomRot["iMoment"][ele] = []
+                        MomRot["iRotation"][ele] = []
+                        MomRot["jMoment"][ele] = []
+                        MomRot["jRotation"][ele] = []
                         basicForces        = ops.eleResponse(ele,'basicForce')                   #[axial , iMoment,jMoment] 
                         basicDeforms       = ops.eleResponse(ele,'basicDeformation')             #[pinch , irotation,jrotation] 
-                        plasticDeforms     = ops.eleResponse(ele,'plasticDeformation')           #[pinch , irotation,jrotation] 
-                        elasticDeforms     = [(i-z) for i,z in zip(basicDeforms,plasticDeforms)] #[pinch , irotation,jrotation]
-                        forces             = ops.eleResponse(ele,"force")                        #[iaxial,ishear,imoment,jaxial,jshear,jmoment]
+
+                        ibasicForces       = basicForces[1]   #i ucunun momenti tutuluyor her zaman adımında
+                        jbasicForces       = basicForces[2]   #j ucunun momenti tutuluyor her zaman adımında
+                        ibasicDeforms      = basicDeforms[1]    #i ucunun dönmesi tutuluyor her zaman adımında
+                        jbasicDeforms      = basicDeforms[2]  #i ucunun dönmesi tutuluyor her zaman adımında
+
+                        MomRot['iMoment'][ele].append(ibasicForces)
+                        MomRot['iRotation'][ele].append(ibasicDeforms)
+                        MomRot['jMoment'][ele].append(jbasicForces)
+                        MomRot['jRotation'][ele].append(jbasicDeforms)"""
+
+                    for ele in ops.getEleTags():
+                        if ele not in sectionOutput.keys():
+                            sectionOutput[ele]={
+                                                #"force"         : [],
+                                                "ibasicForce"    : [],
+                                                "jbasicForce"    : [],
+                                                "itotalRot"      : [],
+                                                #"iplasticRot"   : [],
+                                                #"ielasticRot"   : [],
+                                                "jtotalRot"      : [],
+                                                #"jplasticRot"   : [],
+                                                #"jelasticRot"   : [],
+                                                #"intgLocation"  : ops.eleResponse(ele,"integrationPoints"),
+                                                #"intgForces"    : [],
+                                                #"intgCurvature" : []
+                                               }
+                               
+                        #intgpnt = len(ops.sectionLocation(ele))
+                        basicForces        = ops.eleResponse(ele,'basicForce')                   #[axial , iMoment,jMoment] 
+                        basicDeforms       = ops.eleResponse(ele,'basicDeformation')             #[pinch , irotation,jrotation] 
+                        #plasticDeforms     = ops.eleResponse(ele,'plasticDeformation')           #[pinch , irotation,jrotation] 
+                        #elasticDeforms     = [(i-z) for i,z in zip(basicDeforms,plasticDeforms)] #[pinch , irotation,jrotation]
+                        #forces             = ops.eleResponse(ele,"force")                        #[iaxial,ishear,imoment,jaxial,jshear,jmoment]
                         
                         ibasicForces       = basicForces[1]   #i ucunun momenti tutuluyor her zaman adımında
                         jbasicForces       = basicForces[2]   #j ucunun momenti tutuluyor her zaman adımında
                         
                         ibasicDeforms      = basicDeforms[1]    #i ucunun dönmesi tutuluyor her zaman adımında
-                        iplasticDeforms    = plasticDeforms[1]  #i ucunun dönmesi tutuluyor her zaman adımında
-                        ielasticDeforms    = elasticDeforms[1]  #i ucunun dönmesi tutuluyor her zaman adımında
+                        #iplasticDeforms    = plasticDeforms[1]  #i ucunun dönmesi tutuluyor her zaman adımında
+                        #ielasticDeforms    = elasticDeforms[1]  #i ucunun dönmesi tutuluyor her zaman adımında
                         
                         jbasicDeforms      = basicDeforms[2]  #i ucunun dönmesi tutuluyor her zaman adımında
-                        jplasticDeforms    = plasticDeforms[2]  #i ucunun dönmesi tutuluyor her zaman adımında
-                        jelasticDeforms    = elasticDeforms[2]  #i ucunun dönmesi tutuluyor her zaman adımında
+                        #jplasticDeforms    = plasticDeforms[2]  #i ucunun dönmesi tutuluyor her zaman adımında
+                        #jelasticDeforms    = elasticDeforms[2]  #i ucunun dönmesi tutuluyor her zaman adımında
                         
-                        sectionForces      = ops.eleResponse(ele,"section",1,"force")       #integrasyon noktalarındaki kuvvetler tutuluyor
-                        sectionCurvatures  = ops.eleResponse(ele,"section",1,"deformation") #integrasyon noktalarındaki eğilmeler tutuluyor
+                        #sectionForces      = ops.eleResponse(ele,"section",1,"force")       #integrasyon noktalarındaki kuvvetler tutuluyor
+                        #sectionCurvatures  = ops.eleResponse(ele,"section",1,"deformation") #integrasyon noktalarındaki eğilmeler tutuluyor
 
-                        sectionOutput[ele]["force"]        .append(forces)        #eleman iç kuvvetleri tutuluyor
+                        #sectionOutput[ele]["force"]        .append(forces)        #eleman iç kuvvetleri tutuluyor
                         sectionOutput[ele]["ibasicForce"]  .append(ibasicForces)
+                        
                         sectionOutput[ele]["jbasicForce"]  .append(jbasicForces)
                         sectionOutput[ele]["itotalRot"]    .append(ibasicDeforms)
-                        sectionOutput[ele]["iplasticRot"]  .append(iplasticDeforms)
-                        sectionOutput[ele]["ielasticRot"]  .append(ielasticDeforms)
+                        #sectionOutput[ele]["iplasticRot"]  .append(iplasticDeforms)
+                        #sectionOutput[ele]["ielasticRot"]  .append(ielasticDeforms)
                         sectionOutput[ele]["jtotalRot"]    .append(jbasicDeforms)
-                        sectionOutput[ele]["jplasticRot"]  .append(jplasticDeforms)
-                        sectionOutput[ele]["jelasticRot"]  .append(jelasticDeforms)
-                        sectionOutput[ele]["intgForces"]   .append(sectionForces)
-                        sectionOutput[ele]["intgCurvature"].append(sectionCurvatures)
+                        #sectionOutput[ele]["jplasticRot"]  .append(jplasticDeforms)
+                        #sectionOutput[ele]["jelasticRot"]  .append(jelasticDeforms)
+                        #sectionOutput[ele]["intgForces"]   .append(sectionForces)
+                        #sectionOutput[ele]["intgCurvature"].append(sectionCurvatures)
 
+                        #Bilgilendirme için normalde kullanılmıyor...
                         #axial_moment_i     = ops.eleResponse(ele,'section',2,'force')      # Column section forces, axial and moment,    node i return list
                         #axial_curvature_i  = ops.eleResponse(ele,'section',2,'deformation')# section deformations,  axial(ezilme) and curvature(eğrilik), node i return list
                         #axial_moment_j     = ops.eleResponse(ele,'section',5,'force')      # Column section forces, axial and moment,    node j return list
@@ -1619,8 +1634,21 @@ class opsbuild:
         else:
             logger.info("Deplasman kontrol analizi basarili...")
         
+        # for All elements moment-rotation values each joints
+        #"iTotalEnergy","jTotalEnergy","TotalMemberEnergy"
+        MomRot["Eletags"] = ops.getEleTags()
+        for ele in ops.getEleTags():
+            MomRot["iMoment"][ele]   = sectionOutput[ele]["ibasicForce"]
+            MomRot["iRotation"][ele] = sectionOutput[ele]["itotalRot"]
+            MomRot["jMoment"][ele]   = sectionOutput[ele]["jbasicForce"]
+            MomRot["jRotation"][ele] = sectionOutput[ele]["jtotalRot"]
+
+            MomRot["iTotalEnergy"][ele] = cumtrapz(sectionOutput[ele]["ibasicForce"],sectionOutput[ele]["itotalRot"])
+            MomRot["jTotalEnergy"][ele] = cumtrapz(sectionOutput[ele]["jbasicForce"],sectionOutput[ele]["jtotalRot"])
+            MomRot["TotalMemberEnergy"][ele] = [(i+j) for i,j in zip(MomRot["iTotalEnergy"][ele],MomRot["jTotalEnergy"][ele])]
+
         dfEleForces = pd.DataFrame(data=eleForces)
-        dfOutput    = pd.DataFrame(data = sectionOutput).T
+        #dfOutput    = pd.DataFrame(data = sectionOutput).T
         dfNodalDisp = pd.DataFrame(data=nodalOutput).T
         dfFiberOutput = pd.DataFrame(data=fiberOutput).T
         dfFiberData  = pd.DataFrame(data=outFiberData).T
@@ -1631,7 +1659,7 @@ class opsbuild:
         
         del eleForces,sectionOutput,nodalOutput,fiberOutput
         
-        return nodalDisps,dfEleForces,time,dfFiberOutput,Eds,dfOutput,dfNodalDisp,dfFiberData
+        return nodalDisps,dfEleForces,time,dfFiberOutput,Eds,MomRot,dfNodalDisp,dfFiberData
     
     def IDA(DtAnalysis=0.01,TmaxAnalysis=10,patternTag=1 ,incrGMFactor=0.05,MaxGMFactor=2.0):
         # Analysis duration and time step

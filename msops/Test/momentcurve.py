@@ -10,7 +10,7 @@ import openseespy.opensees as ops
 
 # MOMENT - CURVATURE ANALYSİS
 # Muhammed Sural
-for axial in range(0,500,25):
+for axial in range(0,10,5):
     #=================================================================================================================================
     # Beton malzeme özellikleri
     conc = Concrete(name='C25/30',fck=25)
@@ -69,10 +69,10 @@ for axial in range(0,500,25):
                                 nfCoverZ=20,
                                 pflag=1
                                 )
-    #pltr.plot_fiber_section(SecID=Fiber,fiber_sec=fiber_sec)
+    pltr.plot_fiber_section(SecID=Fiber,fiber_sec=fiber_sec)
 
     #Moment-Curvature Analysis
     #================================================================================================================================
-    Load,Curvature = bops.MomentCurvature(secTag=Fiber,axialLoad=axial,maxK=15,HSec=sec.h,BSec=sec.b,numIncr=100)
+    Load,Curvature = bops.MomentCurvature(secTag=Fiber,axialLoad=axial,maxK=15,HSec=sec.h*Unit.mm,BSec=sec.b,numIncr=100)
     pltr.plot_Moment_Curvature(Curvature,Load,label=f'Axial={axial}')
     ops.wipe('all')

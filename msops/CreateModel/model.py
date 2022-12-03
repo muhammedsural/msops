@@ -1,8 +1,7 @@
 from dataclasses import dataclass,field
-from unicodedata import name
 import numpy as np
 import pandas as pd
-from msops.Elements.BeamIntegration import Integration, IntegrationType
+from msops.Elements.BeamIntegration import Integration,IntegrationDatas, IntegrationType
 from msops.Elements.Frame import Column, FrameDatas
 from msops.Elements.Node import NodeDatas,Node
 from msops.Material.material import Concrete,Steel
@@ -159,9 +158,19 @@ class createPortalFrame2():
     dbFloorNodes        : dict          = field(default_factory=dict)
     dbNodes             : NodeDatas     = NodeDatas()
     dbSections          : SectionDatas  = SectionDatas()
+    dbIntegrations      : IntegrationDatas = IntegrationDatas()
     dbFrames            : FrameDatas    = FrameDatas()
+    __frameNo           : int           = field(default=1)
     
     def __post_init__(self) -> None:
+        self.create_axis()
+        self.create_nodes()
+        self.set_concrete_material(name = 'C30',fck = 30*Unit.MPa)
+        self.set_rebar_material(name='S420')
+        self.create_section(Id=1,name="C30/70",b=30,h=70,cover=25,k=0.7)
+        self.create_section(Id=2,name="Elastic",b=30,h=70,cover=25,k=1)
+        self.create_column()
+
         pass
     
     def create_axis(self) -> None:
@@ -200,7 +209,7 @@ class createPortalFrame2():
     
     def set_rebar_material(self,**kwargs) -> None:
         """
-            Set Concrete material
+            Set Rebar material
             
             Attributes:
                 name    : str   = 'B500C'          rebar name
@@ -211,8 +220,7 @@ class createPortalFrame2():
                 eps_su  : float = None             rebar ultimate strain
                 Kres    : float = None             
                 Es      : float = 2*10**5*un.MPa   young modules of rebar
-                //Name: str= 'B500C',Density : float = 80.,fsy: float = None,epssy: float = None,epssh: float = None,epssu: float = None,Kres: float = None,Es: float = 2*10**5*Unit.MPa
-        
+                
         """
         self.rebar_material = Steel(**kwargs)
     
@@ -224,6 +232,8 @@ class createPortalFrame2():
                 name       Section name
                 b          Section width
                 h          Section height
+                cover      Section cover 
+                k          Section property modifiers
                 coreConc   Section core concrete
                 coverConc  Section cover concrete
                 matRebars  Section rebar material
@@ -232,30 +242,34 @@ class createPortalFrame2():
                 fiberData  Section fiber coords values
         """
         self.dbSections.add_section(RecSection(**kwargs))
-        
+    
+    def create_integration(self,**kwargs) -> None:
+        """
+            Create Integration and added dbIntegrations
+
+            Attributes :
+                Id : int
+                IntegrationType : IntegrationType 
+                Args : list  -> for example if you are create HingeMidpoint integration type, args must include [sectionI_id,lpl,sectionj_id,lpj,sectionElastic_id]
+        """
+        self.dbIntegrations.add_integration(Integration(**kwargs))
+
     def create_column(self) -> None:
         """Create column element (Elasticbeamcolumn -force based)"""
-        frameNo = 1
-        ##Create Section
-        #coreConc=None,coverConc=None,matRebars=None
-        self.create_section(Id = 1,name='C30/70',b=0.3,h=0.7,numrebars=[3,8,3],dia_rebars=[14,14,14])
-        self.create_section(Id=2 ,name='C70/30',b=0.7,h=0.3,numrebars=[3,8,3],dia_rebars=[14,14,14])
-        #Material
-            #Core Concrete
-            #Cover Concrete
-            #Rebar
-        
-        #BeamColumnIntegration
-        #Intg  = Integration(Id=1,IntegrationType=IntegrationType.HingeMidpoint,Args=[section1, 0.5*section1.h, section1, 0.5*section1.h, section1])
-        #Intg  = Integration(Id=2,IntegrationType=IntegrationType.HingeMidpoint,Args=[section2, 0.5*section2.h, section2, 0.5*section2.h, section2])
-        
         for floor in self.dbFloorNodes.keys():
             if floor != max(self.dbFloorNodes):
                 for iNode,jNode in zip(self.dbFloorNodes[floor],self.dbFloorNodes[floor+1]):
                     #Nodes
                     nodes = self.dbNodes.find_nodes([iNode,jNode])
                     ##Column
-                    #Column(Id=frameNo,EleNodes=nodes,TransfTag=1,Integration=colIntg)
+                    print(self.__frameNo)
+                    section = self.dbSections.find_sections(SectionIdList=[1])
+
+                    self.create_integration(Id=1,IntegrationType=IntegrationType.HingeMidpoint,args=[section.Id,section.h*0.5,section.Id,section.h*0.5,1])
+                    intg = self.dbIntegrations.Get_integration(IntegrationId = 1)
+                    col = Column(Id=self.__frameNo,EleNodes=nodes,TransfTag=1,Integration=intg)
+                    self.dbFrames.add_frame(frame=col)
+                    self.__frameNo += 1
     
     def create_beam(self) -> None:
         pass
@@ -309,14 +323,9 @@ class createPortalFrame2():
 
 def main():
     model = createPortalFrame2(numBay=2,numFloor=2,firstFloor=4,bayWidht=3,storyHeight=3)
-    model.create_axis()
-    model.create_nodes()
-    model.set_concrete_material(name = 'C30',fck = 30*Unit.MPa)
-    model.set_rebar_material(name='S420')
-    #print(model.dbSections.find_sections(SectionIdList=[1,2]))
-    model.create_column()
-    """Kolon yaratırken oluşturduğu betonarme kesitlerde eğer kabuk ve çekirdek için bir opsmaterial nesnesi yaratmazsam default değer atar. Bunun test grafiğinide aşağıdaki kodlar ile elde ederim
-    bir nesne ataması yaparsam ona uygun olarak test çizimi gelir.
+    print(model.dbFrames)
+    """Kolon yaratırken oluşturduğu betonarme kesitlerde eğer kabuk ve çekirdek için bir opsmaterial nesnesi yaratmazsam default değer atar. 
+    Bunun test grafiğinide aşağıdaki kodlar ile elde ederim. Bir nesne ataması yaparsam ona uygun olarak test çizimi gelir.
     
     C1 = model.dbSections.find_sections([1])
     sec1 = C1[0].coverConc
