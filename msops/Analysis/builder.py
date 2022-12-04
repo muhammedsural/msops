@@ -1346,7 +1346,7 @@ class opsbuild:
                         ):
         """
         DtAnalysis=0.01,TmaxAnalysis=10,outEleForces =False,outNodalDisp=True,
-        outFiber : [record,eleid,Hsec,cover,idCoverMat,idCoreMat,idSteel] default:[True,0.30,0.05,1,2,3]
+        #outFiber : [record,Hsec,cover,idCoverMat,idCoreMat,idSteel,lpl] default:[True,0.30,0.05,1,2,3]
         
         """
         # Konfigürasyon
@@ -1375,10 +1375,7 @@ class opsbuild:
         
         
         
-        eleForces     = {}
-        nodalDisps    = {}
-        fiberOutput   = {}
-        sectionOutput = {}
+        
         outFiberData  = {}
         nodalOutput   = {}
         for node in ops.getNodeTags():
@@ -1393,11 +1390,19 @@ class opsbuild:
         nels = len(el_tags)
         Eds = np.zeros((n_steps+100, nels, 6))
         step = 1           # current step number
-        
-        MomRot = pd.DataFrame(columns=["Eletags","iMoment","iRotation","jMoment","jRotation","iTotalEnergy","jTotalEnergy","TotalMemberEnergy"],index=ops.getEleTags())
-        
-        
+
+                
+        MomentRotation    = pd.DataFrame(columns=["Eletags","iMoment","iRotation","jMoment","jRotation"],index=([i for i in range(1,n_steps*max(ops.getEleTags()))]))
+        NodalDisplacement = pd.DataFrame(columns=["Nodetags","NodeDispX","NodeDispY","NodeRotation"],index=([i for i in range(1,n_steps*max(ops.getNodeTags()))]))
+        ElementForces     = pd.DataFrame(columns=["Eletags","Ni","Nj","Ti","Tj","Mi","Mj"],index=([i for i in range(1,n_steps*max(ops.getEleTags()))]))
+        FiberStressStrain = pd.DataFrame(columns=["Eletags","TopCoverStress","TopCoverStrain","TopCoreStress","TopCoreStrain","TopSteelStress","TopSteelStrain","BotCoverStress","BotCoverStrain","BotCoreStress","BotCoreStrain","BotSteelStress","BotSteelStrain"])
+        FiberData         = pd.DataFrame()
+
         ok = 0
+        indexForce = 1
+        indexDisp = 1
+        indexMomrot = 1
+        indexFibers = 1
 
         while ok == 0 and tCurrent <= TmaxAnalysis:
             ok = ops.analyze(1,DtAnalysis)
@@ -1421,91 +1426,97 @@ class opsbuild:
                 time.append(tCurrent)
                 step += 1           # Update the current step number
                 
-                for node in ops.getNodeTags():
-                    xdisp = ops.nodeDisp(node,1)
-                    ydisp = ops.nodeDisp(node,2)
-                    zrot  = ops.nodeDisp(node,3)
-                    
-                    nodalOutput[node]["nodeX_disp"].append(xdisp)
-                    nodalOutput[node]["nodeY_disp"].append(ydisp)
-                    nodalOutput[node]["node_rotation"].append(zrot)
-                    
+                
+                #Dataframe yapısına çevrildi 03.12.2022
                 if outEleForces:
-                    for ele in ops.getEleTags(): #eleman tagleri içinde dönüyorum
+                    for ele in ops.getEleTags():
                         forces = ops.eleForce(ele,-1) #eleman kuvvetlerini atıyorum
-                        #print(len(forces))
-                        if len(eleForces.keys()) !=  len(ops.getEleTags()):
-                            #eleForces1[ele] = np.array(0)
-                            
-                            eleForces[ele] = np.array(0) 
-                            eleForces[ele] = np.append(eleForces[ele],forces)
-                            #eleForces1[ele] = np.append(eleForces1[ele],forces)
-                            continue
-                        else:
-                            eleForces[ele] = np.append(eleForces[ele],forces)
-                            #eleForces1[ele] = np.append(eleForces1[ele],forces)
-                    eleForces1 = pd.DataFrame(columns=["Ni","Nj","Ti","Tj","Mi","Mj"],index=eleForces.keys())
-                    #for key in eleForces.keys():
-                    #    eleForces1["Mi"] = eleForces[key][2::6]
-                    #    eleForces1["Ti"] = eleForces[key][1::6]
-                    #    eleForces1["Ni"] = eleForces[key][0::6]
-                        
+                        ElementForces.loc[indexForce] = [int(ele),forces[0],forces[1],forces[2],forces[3],forces[4],forces[5]]
+                        indexForce += 1
+
+                #Dataframe yapısına çevrildi 03.12.2022       
                 if outNodalDisp:
                     for node in ops.getNodeTags():
-                        disps = ops.nodeDisp(node,1)
-                        if len(nodalDisps.keys()) != len(ops.getNodeTags()):
-                            nodalDisps[node] = np.array(0)
-                            nodalDisps[node] = np.append(nodalDisps[node],disps)
-                        else:
-                            nodalDisps[node] = np.append(nodalDisps[node],disps) 
+                        disps = ops.nodeDisp(node,-1)
+                        NodalDisplacement.loc[indexDisp] = [int(node),disps[0],disps[1],disps[2]]
+                        indexDisp += 1
                 
-                if outFiber[0]:
-                    for ele in ops.getEleTags():
-                        if ele not in sectionOutput.keys():
-                            fiberOutput[ele]={  "top_cover":{"stress":[],"strain":[]},
-                                                "top_core" :{"stress":[],"strain":[]},
-                                                "bot_cover":{"stress":[],"strain":[]},
-                                                "bot_core" :{"stress":[],"strain":[]},
-                                                "steel_top":{"stress":[],"strain":[]},
-                                                "steel_bot":{"stress":[],"strain":[]},
-                                               }
-                        #            [0    , 1  ,  2  ,    3     ,    4    ,   5   , 6]    
-                        #outFiber : [record,Hsec,cover,idCoverMat,idCoreMat,idSteel,lpl]
-                        # Compression fiber                                               eleman lokasyonu,  'fiber',        y=HSec/2            ,   z=0 ,   matTag 
-                        # ilgili eleman uzunluğunda verilen plastik mafsal uzunluğuna en yakın fiber kesitteki 6 noktada verilen malzeme türünde okuma yapılır
-                        fiber_stressStrain_top_cover        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber', outFiber[2]/2              ,    0  , outFiber[3]  , 'stressStrain' )
-                        fiber_stressStrain_top_core         = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber', (outFiber[2]-outFiber[3])/2,    0  , outFiber[4]  , 'stressStrain' )
-                        # Tension fiber
-                        fiber_stressStrain_bot_cover        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',-outFiber[2]/2              ,    0  , outFiber[3]  , 'stressStrain' )
-                        fiber_stressStrain_bot_core         = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',-(outFiber[2]-outFiber[3])/2,    0  , outFiber[4]  , 'stressStrain' )
-                        # Tension fiber - steel
-                        fiber_stressStrain_steel_top        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',outFiber[2]/2               ,    0  , outFiber[5]  , 'stressStrain' )
-                        fiber_stressStrain_steel_bot        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',-outFiber[2]/2              ,    0  , outFiber[5]  , 'stressStrain' )
-                        
-                        
-                        if len(fiber_stressStrain_top_cover)>1:
-                            fiberOutput[ele]["top_cover"]["stress"]   .append(fiber_stressStrain_top_cover[0])
-                            fiberOutput[ele]["top_cover"]["strain"]   .append(fiber_stressStrain_top_cover[1])
-                        
-                        if len(fiber_stressStrain_top_core)>1:
-                            fiberOutput[ele]["top_core"]["stress"]    .append(fiber_stressStrain_top_core[0])
-                            fiberOutput[ele]["top_core"]["strain"]    .append(fiber_stressStrain_top_core[1])
-                        
-                        if len(fiber_stressStrain_bot_cover)>1:
-                            fiberOutput[ele]["bot_cover"]["stress"]   .append(fiber_stressStrain_bot_cover[0])
-                            fiberOutput[ele]["bot_cover"]["strain"]   .append(fiber_stressStrain_bot_cover[1])
+                #            [0    , 1  ,  2  ,    3     ,    4    ,   5   , 6]    
+                #outFiber : [record,Hsec,cover,idCoverMat,idCoreMat,idSteel,lpl]
+                #  0 ,1 , 2  , 3  ,  4 ,  5  ,     6    ,   7     ,   8   ,  9
+                #  iN,jN, L  ,Bsec,Hsec,cover,idCoverMat,idCoreMat,idSteel, lpl
+                # [ 1, 5, 3.0, 0.7, 0.3,0.025,     1    ,   3     ,   4   , 0.15]
+                #Dataframe yapısına çevrildi 03.12.2022
+                for ele in outFiber.keys():
+                    fiber_stressStrain_top_cover        = ops.eleResponse(int(ele), 'sectionX', outFiber[ele][9],  'fiber',  outFiber[ele][4]/2                  ,    0  , outFiber[ele][6]  , 'stressStrain' )
+                    fiber_stressStrain_top_core         = ops.eleResponse(int(ele), 'sectionX', outFiber[ele][9],  'fiber', (outFiber[ele][4]-outFiber[ele][5])/2,    0  , outFiber[ele][7]  , 'stressStrain' )
+                    # Tension fiberint
+                    fiber_stressStrain_bot_cover        = ops.eleResponse(int(ele), 'sectionX', outFiber[ele][9],  'fiber', -outFiber[ele][4]/2                  ,    0  , outFiber[ele][6]  , 'stressStrain' )
+                    fiber_stressStrain_bot_core         = ops.eleResponse(int(ele), 'sectionX', outFiber[ele][9],  'fiber',-(outFiber[ele][4]-outFiber[ele][5])/2,    0  , outFiber[ele][7]  , 'stressStrain' )
+                    # Tension fiber - steelint
+                    fiber_stressStrain_steel_top        = ops.eleResponse(int(ele), 'sectionX', outFiber[ele][9],  'fiber', outFiber[ele][4]/2                   ,    0  , outFiber[ele][8]  , 'stressStrain' )
+                    fiber_stressStrain_steel_bot        = ops.eleResponse(int(ele), 'sectionX', outFiber[ele][9],  'fiber',-outFiber[ele][4]/2                   ,    0  , outFiber[ele][8]  , 'stressStrain' )
+                    
+                    recordDatas = [int(ele),
+                    fiber_stressStrain_top_cover[0],fiber_stressStrain_top_cover[1],
+                    fiber_stressStrain_top_core[0],fiber_stressStrain_top_core[1],
+                    fiber_stressStrain_steel_top[0],fiber_stressStrain_steel_top[1],
+                    fiber_stressStrain_bot_cover[0],fiber_stressStrain_bot_cover[1],
+                    fiber_stressStrain_bot_core[0],fiber_stressStrain_bot_core[1],
+                    fiber_stressStrain_steel_bot[0],fiber_stressStrain_steel_bot[1]]
+                    FiberStressStrain.loc[indexFibers] = recordDatas
+                    indexFibers += 1
+
+                    
+                    """
+                    if outFiber[0]:
+                        for ele in ops.getEleTags():
+                            if ele not in sectionOutput.keys():
+                                fiberOutput[ele]={  "top_cover":{"stress":[],"strain":[]},
+                                                    "top_core" :{"stress":[],"strain":[]},
+                                                    "bot_cover":{"stress":[],"strain":[]},
+                                                    "bot_core" :{"stress":[],"strain":[]},
+                                                    "steel_top":{"stress":[],"strain":[]},
+                                                    "steel_bot":{"stress":[],"strain":[]},
+                                                }
+                            #            [0    , 1  ,  2  ,    3     ,    4    ,   5   , 6]    
+                            #outFiber : [record,Hsec,cover,idCoverMat,idCoreMat,idSteel,lpl]
+                            # Compression fiber                                               eleman lokasyonu,  'fiber',        y=HSec/2            ,   z=0 ,   matTag 
+                            # ilgili eleman uzunluğunda verilen plastik mafsal uzunluğuna en yakın fiber kesitteki 6 noktada verilen malzeme türünde okuma yapılır
+                            fiber_stressStrain_top_cover        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber', outFiber[2]/2              ,    0  , outFiber[3]  , 'stressStrain' )
+                            fiber_stressStrain_top_core         = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber', (outFiber[2]-outFiber[3])/2,    0  , outFiber[4]  , 'stressStrain' )
+                            # Tension fiber
+                            fiber_stressStrain_bot_cover        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',-outFiber[2]/2              ,    0  , outFiber[3]  , 'stressStrain' )
+                            fiber_stressStrain_bot_core         = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',-(outFiber[2]-outFiber[3])/2,    0  , outFiber[4]  , 'stressStrain' )
+                            # Tension fiber - steel
+                            fiber_stressStrain_steel_top        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',outFiber[2]/2               ,    0  , outFiber[5]  , 'stressStrain' )
+                            fiber_stressStrain_steel_bot        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',-outFiber[2]/2              ,    0  , outFiber[5]  , 'stressStrain' )
                             
-                        if len(fiber_stressStrain_bot_core)>1:    
-                            fiberOutput[ele]["bot_core"] ["stress"]   .append(fiber_stressStrain_bot_core [0])
-                            fiberOutput[ele]["bot_core"] ["strain"]   .append(fiber_stressStrain_bot_core [1])
-                        
-                        if len(fiber_stressStrain_steel_top)>1:
-                            fiberOutput[ele]["steel_top"]["stress"]   .append(fiber_stressStrain_steel_top[0])
-                            fiberOutput[ele]["steel_top"]["strain"]   .append(fiber_stressStrain_steel_top[1])
-                        
-                        if len(fiber_stressStrain_steel_bot)>1:
-                            fiberOutput[ele]["steel_bot"]["stress"]   .append(fiber_stressStrain_steel_bot[0])
-                            fiberOutput[ele]["steel_bot"]["strain"]   .append(fiber_stressStrain_steel_bot[1])
+                            
+                            if len(fiber_stressStrain_top_cover)>1:
+                                fiberOutput[ele]["top_cover"]["stress"]   .append(fiber_stressStrain_top_cover[0])
+                                fiberOutput[ele]["top_cover"]["strain"]   .append(fiber_stressStrain_top_cover[1])
+                            
+                            if len(fiber_stressStrain_top_core)>1:
+                                fiberOutput[ele]["top_core"]["stress"]    .append(fiber_stressStrain_top_core[0])
+                                fiberOutput[ele]["top_core"]["strain"]    .append(fiber_stressStrain_top_core[1])
+                            
+                            if len(fiber_stressStrain_bot_cover)>1:
+                                fiberOutput[ele]["bot_cover"]["stress"]   .append(fiber_stressStrain_bot_cover[0])
+                                fiberOutput[ele]["bot_cover"]["strain"]   .append(fiber_stressStrain_bot_cover[1])
+                                
+                            if len(fiber_stressStrain_bot_core)>1:    
+                                fiberOutput[ele]["bot_core"] ["stress"]   .append(fiber_stressStrain_bot_core [0])
+                                fiberOutput[ele]["bot_core"] ["strain"]   .append(fiber_stressStrain_bot_core [1])
+                            
+                            if len(fiber_stressStrain_steel_top)>1:
+                                fiberOutput[ele]["steel_top"]["stress"]   .append(fiber_stressStrain_steel_top[0])
+                                fiberOutput[ele]["steel_top"]["strain"]   .append(fiber_stressStrain_steel_top[1])
+                            
+                            if len(fiber_stressStrain_steel_bot)>1:
+                                fiberOutput[ele]["steel_bot"]["stress"]   .append(fiber_stressStrain_steel_bot[0])
+                                fiberOutput[ele]["steel_bot"]["strain"]   .append(fiber_stressStrain_steel_bot[1])
+                    """
                                                                         
                 if animotions:
                     for el_i, ele_tag in enumerate(el_tags):
@@ -1517,28 +1528,17 @@ class opsbuild:
                                                   ops.nodeDisp(nd2)[1],
                                                   ops.nodeDisp(nd2)[2]]
                 
+                #Dataframe yapısına çevrildi 03.12.2022
                 if outSection:
-
-                    """for ele in ops.getEleTags():
-                        MomRot["Eletags"][ele] = ele
-                        MomRot["iMoment"][ele] = []
-                        MomRot["iRotation"][ele] = []
-                        MomRot["jMoment"][ele] = []
-                        MomRot["jRotation"][ele] = []
+                    for ele in ops.getEleTags():
                         basicForces        = ops.eleResponse(ele,'basicForce')                   #[axial , iMoment,jMoment] 
                         basicDeforms       = ops.eleResponse(ele,'basicDeformation')             #[pinch , irotation,jrotation] 
-
-                        ibasicForces       = basicForces[1]   #i ucunun momenti tutuluyor her zaman adımında
-                        jbasicForces       = basicForces[2]   #j ucunun momenti tutuluyor her zaman adımında
-                        ibasicDeforms      = basicDeforms[1]    #i ucunun dönmesi tutuluyor her zaman adımında
-                        jbasicDeforms      = basicDeforms[2]  #i ucunun dönmesi tutuluyor her zaman adımında
-
-                        MomRot['iMoment'][ele].append(ibasicForces)
-                        MomRot['iRotation'][ele].append(ibasicDeforms)
-                        MomRot['jMoment'][ele].append(jbasicForces)
-                        MomRot['jRotation'][ele].append(jbasicDeforms)"""
-
+                        MomentRotation.loc[indexMomrot] = [int(ele),basicForces[1],basicDeforms[1],basicForces[2],basicDeforms[2]]
+                        indexMomrot += 1
+                        
+                    """
                     for ele in ops.getEleTags():
+
                         if ele not in sectionOutput.keys():
                             sectionOutput[ele]={
                                                 #"force"         : [],
@@ -1584,6 +1584,7 @@ class opsbuild:
                         #sectionOutput[ele]["iplasticRot"]  .append(iplasticDeforms)
                         #sectionOutput[ele]["ielasticRot"]  .append(ielasticDeforms)
                         sectionOutput[ele]["jtotalRot"]    .append(jbasicDeforms)
+
                         #sectionOutput[ele]["jplasticRot"]  .append(jplasticDeforms)
                         #sectionOutput[ele]["jelasticRot"]  .append(jelasticDeforms)
                         #sectionOutput[ele]["intgForces"]   .append(sectionForces)
@@ -1601,7 +1602,7 @@ class opsbuild:
                         #sectionOutput[ele]["section_rotations_i"].append( ops.sectionDeformation(ele,2,2))
                         #sectionOutput[ele]["section_rotations_j"].append(ops.sectionDeformation(ele,5,2))
                         #sectionOutput[ele]["section_moments_i"]  .append(ops.sectionForce(ele,2,2))
-                        #sectionOutput[ele]["section_moments_j"]  .append( ops.sectionForce(ele,5,2))  
+                        #sectionOutput[ele]["section_moments_j"]  .append( ops.sectionForce(ele,5,2))"""  
 
                 if fiberData:
                     for ele in ops.getEleTags():
@@ -1634,32 +1635,8 @@ class opsbuild:
         else:
             logger.info("Deplasman kontrol analizi basarili...")
         
-        # for All elements moment-rotation values each joints
-        #"iTotalEnergy","jTotalEnergy","TotalMemberEnergy"
-        MomRot["Eletags"] = ops.getEleTags()
-        for ele in ops.getEleTags():
-            MomRot["iMoment"][ele]   = sectionOutput[ele]["ibasicForce"]
-            MomRot["iRotation"][ele] = sectionOutput[ele]["itotalRot"]
-            MomRot["jMoment"][ele]   = sectionOutput[ele]["jbasicForce"]
-            MomRot["jRotation"][ele] = sectionOutput[ele]["jtotalRot"]
-
-            MomRot["iTotalEnergy"][ele] = cumtrapz(sectionOutput[ele]["ibasicForce"],sectionOutput[ele]["itotalRot"])
-            MomRot["jTotalEnergy"][ele] = cumtrapz(sectionOutput[ele]["jbasicForce"],sectionOutput[ele]["jtotalRot"])
-            MomRot["TotalMemberEnergy"][ele] = [(i+j) for i,j in zip(MomRot["iTotalEnergy"][ele],MomRot["jTotalEnergy"][ele])]
-
-        dfEleForces = pd.DataFrame(data=eleForces)
-        #dfOutput    = pd.DataFrame(data = sectionOutput).T
-        dfNodalDisp = pd.DataFrame(data=nodalOutput).T
-        dfFiberOutput = pd.DataFrame(data=fiberOutput).T
-        dfFiberData  = pd.DataFrame(data=outFiberData).T
-        
-        #from scipy import integrate as intg
-        #intg.cumtrapz(dfOutput["ibasicForce"],dfOutput["itotalRot"])
-        #dfEleEnergy = pd.DataFrame(columns=[1,2])
-        
-        del eleForces,sectionOutput,nodalOutput,fiberOutput
-        
-        return nodalDisps,dfEleForces,time,dfFiberOutput,Eds,MomRot,dfNodalDisp,dfFiberData
+       
+        return ElementForces,NodalDisplacement,MomentRotation,FiberStressStrain,Eds,time
     
     def IDA(DtAnalysis=0.01,TmaxAnalysis=10,patternTag=1 ,incrGMFactor=0.05,MaxGMFactor=2.0):
         # Analysis duration and time step
