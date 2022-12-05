@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import openseespy.opensees as ops
 import opsvis as opsv
 import numpy as np
+from pandas import DataFrame
 from scipy.integrate import cumtrapz
 class plotter:
     
@@ -56,6 +57,16 @@ class plotter:
                 ax[2].plot( elasticRot[ele] ) , ax[2].axhline(c = "k") , ax[2].axvline(c = "k") , ax[2].set_xlabel("Step"), ax[2].set_ylabel( "Rotation (rad)") , ax[2].legend( ["Elastic"]) , ax[2].set_frame_on(False) ; 
                 plt.suptitle( f"{ele} Rotations Graphs".upper(), fontsize = 20 );
     
+    def plot_MomentRotation(MomentRotation : DataFrame,SaveFolder : str):
+        for ele in ops.getEleTags():
+            fig , ax = plt.subplots( 1,2 , sharex = True , sharey = True  , figsize=(20,5) )
+            ax[0].plot( MomentRotation.query(f"Eletags == {ele} ")["iRotation"],MomentRotation.query(f"Eletags == {ele} ")["iMoment"] ) , ax[0].axhline(c = "k") , ax[0].axvline(c = "k") , ax[0].set_xlabel("Rotation (rad)"), ax[0].set_ylabel( "Moment (kNM)") , ax[0].legend( ["i node"]) , ax[0].set_frame_on(False) ; 
+            ax[1].plot( MomentRotation.query(f"Eletags == {ele} ")["jRotation"],MomentRotation.query(f"Eletags == {ele} ")["jMoment"] ) , ax[1].axhline(c = "k") , ax[1].axvline(c = "k") , ax[1].set_xlabel("Rotation (rad)"), ax[1].set_ylabel( "Moment (kNM)") , ax[1].legend( ["j node"]) , ax[1].set_frame_on(False) ; plt.suptitle( f"Frame{ele} Hysteresis Graphs".upper(), fontsize = 20 );
+            if os.path.exists(SaveFolder) != True:
+                os.mkdir(SaveFolder)
+            plt.savefig(f"./{SaveFolder}/{ele}.png")
+            plt.show()
+    
     def plot_Energy(ibasicForce,jbasicForce,itotalrot,iplasticrot,ielasticrot,jtotalrot,jplasticrot,jelasticrot,count : int):
         """Plot Dissipated Energy Graphs"""
         for ele in ops.getEleTags():
@@ -98,12 +109,39 @@ class plotter:
             continue
         plt.show() 
     
-    def plot_StressStrain(sectionRegion,count=5):
+    def plot_AllSection_Energy(SectionEnergy : DataFrame,SaveFolder: str):
         for ele in ops.getEleTags():
-            if ele<= count:
-                fig , ax = plt.subplots( 1,1 , sharex = True , sharey = True  , figsize=(20,5) )
-                ax.plot( sectionRegion[ele]["strain"], sectionRegion[ele]["stress"] ) , ax.axhline(c = "k") , ax.axvline(c = "k") , ax.set_xlabel("Strain (m)"), ax.set_ylabel( "Stress (kN/m2)") , ax.legend( ["stress-strain"]) , ax.set_frame_on(False) ; 
-                plt.suptitle( f"Frame{ele} Stress-Strain Graph".upper(), fontsize = 20 );
+            temp = SectionEnergy.query(f"Eletags == {ele} ")
+            fig , ax = plt.subplots( 1,2 , sharex = True , sharey = True  , figsize=(20,8) )
+            ax[0].plot( temp["iNode"] ) , ax[0].axhline(c = "k") , ax[0].axvline(c = "k") , ax[0].set_xlabel("Step"), ax[0].set_ylabel( "EH (kNM)") , ax[0].legend( ["i node total  "]) , ax[0].set_frame_on(False), ax[0].set_xlim(left = 0 ) ;
+            ax[1].plot( temp["jNode"]  ) , ax[1].axhline(c = "k") , ax[1].axvline(c = "k") , ax[1].set_xlabel("Step"), ax[1].set_ylabel( "EH (kNM)") , ax[1].legend( ["j node total  "]) , ax[1].set_frame_on(False), ax[1].set_xlim(left = 0 ) ;
+            plt.suptitle( f" Frame{ele} Dissipated Energy Graphs".upper(), fontsize = 20 );fig.dpi=300
+            if os.path.exists(SaveFolder) != True:
+                os.mkdir(SaveFolder)
+            plt.savefig(f"./{SaveFolder}/{ele}.png")
+            plt.show()  
+
+    def plot_AllFrame_Energy(ElementEnergy : DataFrame,SaveFolder: str):
+        for ele in ops.getEleTags():
+            temp = ElementEnergy.query(f"Eletags == {ele} ")
+            fig,ax = plt.subplots(1,1 , sharex = True , sharey = True  , figsize=(20,8))
+            ax.plot( temp["ElementEnergy"] ) , ax.axhline(c = "k") , ax.axvline(c = "k") , ax.set_xlabel("Step"), ax.set_ylabel( "EH (kNM)") , ax.legend( [f"{ele} total"]) , ax.set_frame_on(False), ax.set_xlim(left = 0 ) ;
+            plt.suptitle( f" Frame{ele} Dissipated Energy Graphs".upper(), fontsize = 20 );fig.dpi=300 
+            if os.path.exists(SaveFolder) != True:
+                os.mkdir(SaveFolder)
+            plt.savefig(f"./{SaveFolder}/Frame{ele}_Total.png")
+            plt.show() 
+
+    def plot_StressStrain(StressStrain : DataFrame,SaveFolder : str):
+        for ele in ops.getEleTags():
+            temp = StressStrain.query(f"Eletags == {ele} ")
+            fig , ax = plt.subplots( 1,1 , sharex = True , sharey = True  , figsize=(20,5) )
+            ax.plot( temp["BotCoreStrain"], temp["BotCoreStress"] ) , ax.axhline(c = "k") , ax.axvline(c = "k") , ax.set_xlabel("Strain (m)"), ax.set_ylabel( "Stress (kN/m2)") , ax.legend( ["stress-strain"]) , ax.set_frame_on(False) ; 
+            plt.suptitle( f"Frame{ele} Stress-Strain Graph".upper(), fontsize = 20 );
+            if os.path.exists(SaveFolder) != True:
+                os.mkdir(SaveFolder)
+            plt.savefig(f"./{SaveFolder}/Frame{ele}_Total.png")
+            plt.show()
 
     #daha hazır değil
     def ms_as_top_disp_plot(dt,*values):
@@ -266,41 +304,6 @@ class plotter:
         ax.set_ylabel('Stress (MPa)')  # Add a y-label to the axes.
         ax.set_title("Mander Model")  # Add a title to the axes.
         plt.show()
-
-        
-        #fig, ax = plt.subplots(figsize=(10,10))
-        #fig.subplots_adjust(bottom=0.15, left=0.2)
-        #ax.grid()
-        #
-        ##Sargısız Çizimi
-        #ax.plot(eps_c_sargısız,f_c_sargısız,label="UnConfined model")
-        #ax.plot(eps_co,f_co,'o',c="b")
-        #ax.annotate(f'{round(eps_co,4)}/{round(f_co,2)}', xy=(eps_co, f_co), xytext=(eps_co+0.001, f_co+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
-        #ax.plot(eps_cu_sargısız,f_c_birim_sargısız,'o',c="b")
-        #ax.annotate(f'{round(eps_cu_sargısız,4)}/{round(f_c_birim_sargısız,2)}', xy=(eps_cu_sargısız, f_c_birim_sargısız), xytext=(eps_cu_sargısız+0.001, f_c_birim_sargısız+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
-#
-        ##Sargılı çizimi
-        #ax.plot(eps_c,f_c,label="Confined model")
-        #ax.plot(eps_co,f_co_sargılı,'o',c="g") #strain 0.002 deki stress-strain noktasının çizimi sargılı
-        #ax.annotate(f'{round(eps_co,4)}/{round(f_co_sargılı,2)}', xy=(eps_co, f_co_sargılı), xytext=(eps_co+0.001, f_co_sargılı+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
-        #ax.plot(eps_cc,f_cc,'o',c="g")         #Maximum stress noktası sargılı
-        #ax.annotate(f'{round(eps_cc,4)}/{round(f_cc,2)}', xy=(eps_cc, f_cc), xytext=(eps_cc+0.001, f_cc+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
-        #ax.plot(eps_cu,f_c_birim,'o',c="g")    #Ultimate nokta sargılı
-        #ax.annotate(f'{round(eps_cu,4)}/{round(f_c_birim,2)}', xy=(eps_cu, f_c_birim), xytext=(eps_cu-0.001, f_c_birim-2),arrowprops=dict(facecolor='black', shrink=0.05))
-        #
-        ##Performans Noktaları
-        #ax.plot(eps_cgö,f_cgö,'o',c="r",label = f"GÖ-{round(eps_cgö,4)}/{round(f_cgö,2)}")
-        #ax.plot(eps_ckh,f_ckh,'o',c="y",label = f"KH-{round(eps_ckh,4)}/{round(f_ckh,2)}")
-        #ax.plot(eps_csh,f_csh,'o',c="b",label = f"SH-{round(eps_csh,4)}/{round(f_csh,2)}")
-#
-        #ax.set_xlabel('Strain (mm)')  # Add an x-label to the axes.
-        #ax.set_ylabel('Stress (MPa)')  # Add a y-label to the axes.
-        #ax.set_title("Mander Model")  # Add a title to the axes.
-        #ax.legend(loc='lower right')
-        #plt.show()
-
-
-        
     
     def plot_Moment_Curvature(Curvature : list, LoadFactor : list,**kwargs) -> None:
         plt.rcParams.update({'font.size': 16})

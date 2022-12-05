@@ -332,6 +332,6 @@ def tbdy_steel(celiksınıfı,E_s = 2*10**5):
             f_s = f_su-(f_su-f_sy)*((eps_su-eps_s)**2/(eps_su-eps_sh)**2)
         
         fs_list.append(f_s)
-    return(eps_s_list,fs_list)
+    return(eps_s_list,fs_list,eps_perf,fs_perf)
 
 

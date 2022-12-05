@@ -3,12 +3,8 @@ import math as mt
 import openseespy.opensees as ops
 
 class FundemantelParameters:
-    def __init__(self,columndict,nodalOutput) -> None:
-        #self.columndict   = columndict
-        #self.nodalOutput  = nodalOutput
-        self.drift        = self.StoryDrift(columndict,nodalOutput)
 
-    def StoryDrift(self,columndict,nodalOutput):
+    def StoryDrift(columndict,nodalOutput):
         """
             INFO
                 Zaman tanım alanında analizden sonra çalıştırılması gerekir.
@@ -23,7 +19,15 @@ class FundemantelParameters:
         """
         storyDrift = {}
         for colId in columndict.keys():
-            storyDrift[colId] = {"xDrift":[],"yDrift":[],"xDriftmax":0,"yDriftmax":0,"Length":0,"xStoryDrift":0,"xStoryDriftCheck":"","yStoryDrift":0,"yStoryDriftCheck":""}
+            storyDrift[colId] = {"xDrift":[],
+                                 "yDrift":[],
+                                 "xDriftmax":0,
+                                 "yDriftmax":0,
+                                 "Length"   :0,
+                                 "xStoryDrift":0,
+                                 "xStoryDriftCheck":"",
+                                 "yStoryDrift":0,
+                                 "yStoryDriftCheck":""}
         for colId,nodes in columndict.items():
             for step in range(1,len(nodalOutput["nodeX_disp"][nodes[0]])):
                 ix= nodalOutput["nodeX_disp"][nodes[0]][step]
@@ -57,25 +61,44 @@ class FundemantelParameters:
 
         return drift
 
+    def StoryDrift2(NodalDisplacement : pd.DataFrame,column_dict : dict,floorFrames : pd.DataFrame) -> pd.DataFrame:
+        """
+            INFO
+                Zaman tanım alanında analizde kolonların göreli kat ötelemesi sonuçları getirilir.
+
+            INPUT
+                NodalDisplacement  : Düğüm noktalarının deplasman sonuçlarının tutulduğu DataFrame
+                columndict         : Kolon bilgilerinin tutulduğu sözlük
+                floorFrames        : Katta bulunan elemanların bilgilerinin tutulduğu dataframe
+            OUTPUT
+                ColumnDrift        : Düşey elemanların göreli kat öteleme sonuçları
+            
+        """
+        ColumnProp = pd.DataFrame(column_dict).T
+        ColumnProp.columns = ["iNode","jNode","Length","bw","h","cover","matcovtag","matcoretag","matsteeltag","Lpl"]
+
+        ColumnDrift = pd.DataFrame(columns=["EleTags","Floor","DeltaXMax","DeltaYMax","Length","XDriftCheck","YDriftCheck"],index=column_dict.keys())
+        ColumnDrift["EleTags"] = column_dict.keys()
+        ColumnDrift["Floor"] = floorFrames[(floorFrames.EleType == "Column")]["Floor"]
+        ColumnDrift["Length"] = ColumnProp["Length"]
+        for colId,nodes in column_dict.items():
+            tempix = NodalDisplacement.query(f"Nodetags == {nodes[0]}")["NodeDispX"].reset_index() #Series
+            tempiy = NodalDisplacement.query(f"Nodetags == {nodes[0]}")["NodeDispY"].reset_index() #Series
+            tempjx = NodalDisplacement.query(f"Nodetags == {nodes[1]}")["NodeDispX"].reset_index() #Series
+            tempjy = NodalDisplacement.query(f"Nodetags == {nodes[1]}")["NodeDispY"].reset_index() #Series
+            DeltaX = tempjx["NodeDispX"]-tempix["NodeDispX"]
+            DeltaY = tempjy["NodeDispY"]-tempiy["NodeDispY"]
+            ColumnDrift["DeltaXMax"][colId] = DeltaX.max()
+            ColumnDrift["DeltaYMax"][colId] = DeltaY.max()
+            ColumnDrift["XDriftCheck"] = ColumnDrift["DeltaXMax"]/ColumnDrift["Length"]
+            ColumnDrift["YDriftCheck"] = ColumnDrift["DeltaYMax"]/ColumnDrift["Length"]
+        del tempix,tempiy,tempjx,tempjy,DeltaX,DeltaY,ColumnProp
+
+        return ColumnDrift
 class Performance:
     def __init__(self) -> None:
         pass
-    """def __init__(self,eps_su,
-                 h,bw,s,f_sy,f_co,pas_payı,etriye_çapı,boyuna_donatı_çapı,numBarsTop,numBarsBot,gövde_donatı_adeti,x_koladeti,y_koladeti,
-                 ultimate_curvature,yield_curvature,Lp,Ls) -> None:
-        self.eps_su = eps_su
-        self.h,self.bw,self.s,self.f_sy,self.f_co,self.pas_payı,self.etriye_çapı,self.boyuna_donatı_çapı,self.numBarsTop,self.numBarsBot,self.gövde_donatı_adeti,self.x_koladeti,self.y_koladeti = h,bw,s,f_sy,f_co,pas_payı,etriye_çapı,boyuna_donatı_çapı,numBarsTop,numBarsBot,gövde_donatı_adeti,x_koladeti,y_koladeti
-        self.ultimate_curvature,self.yield_curvature,self.Lp,self.Ls = ultimate_curvature,yield_curvature,Lp,Ls
         
-        steelStrainPrfL = [round(strain,4) for strain in self.Steelstrain_Perform_Level(eps_su=self.eps_su)]
-        concStrainPrfL  = [round(strain,4) for strain in self.Concstrain_Perform_Level(self.h,self.bw,self.s,self.f_sy,self.f_co,self.pas_payı,self.etriye_çapı,self.boyuna_donatı_çapı,self.numBarsTop,self.numBarsBot,self.gövde_donatı_adeti,self.x_koladeti,self.y_koladeti)]
-        rotationPrfL    = [round(strain,4) for strain in self.Rotation_Perform_Level(self.ultimate_curvature,self.yield_curvature,self.Lp,self.Ls,db=self.boyuna_donatı_çapı)]
-
-        self.steelstrain_Perform_Level = steelStrainPrfL
-        self.concstrain_Perform_Level  = concStrainPrfL
-        self.rotation_Perform_Level    = rotationPrfL"""
-        
-    
     def Steelstrain_Perform_Level(self,eps_su):
         """
         INPUT
@@ -113,21 +136,19 @@ class Performance:
             perform_Level = [eps_cgö,eps_ckh,eps_csh]
 
         """
+        
         bar_area = 3.14*boyuna_donatı_çapı**2/4
-
         top_bar_area = numBarsTop * bar_area
         int_bar_area = gövde_donatı_adeti * bar_area
         bot_bar_area = numBarsBot * bar_area
-
         A_s = top_bar_area + bot_bar_area + int_bar_area
 
         #ke değerinin bulunması
         b_0 = bw-(pas_payı+etriye_çapı/2)*2 #core_x
-        h_0 = h-(pas_payı+etriye_çapı/2)*2 #core_y
+        h_0 = h-(pas_payı+etriye_çapı/2)*2  #core_y
         #birim_x = (bw-2*pas_payı-2*etriye_çapı-boyuna_donatı_çapı)/(baslık_donatı_adeti-1) #birim aralık x
         birim_x_top= (bw-2*pas_payı-2*etriye_çapı-boyuna_donatı_çapı)/(numBarsTop-1)
         birim_x_bot= (bw-2*pas_payı-2*etriye_çapı-boyuna_donatı_çapı)/(numBarsBot-1)
-
         birim_y =(h-2*pas_payı-2*etriye_çapı-boyuna_donatı_çapı)/(gövde_donatı_adeti+1) #birim aralık y
 
         #ai_x = 2*(baslık_donatı_adeti-1)*birim_x**2
@@ -166,15 +187,13 @@ class Performance:
         ro_sh_min = min(ro_x,ro_y)
         omega_we =alfa_se*ro_sh_min*f_sy/f_co
 
-        
-
         eps_cgö = 0.0035+0.04*mt.sqrt(omega_we) #<= 0.018 
         eps_ckh=eps_cgö*0.75
         eps_csh = 0.0025
         perform_Level = [eps_cgö,eps_ckh,eps_csh]
         return perform_Level
 
-    def Rotation_Perform_Level(self,ultimate_curvature,yield_curvature,Lp,Ls,db):
+    def Rotation_Perform_Level(self,ultimate_curvature,yield_curvature,Lp,Ls,db) -> pd.DataFrame:
         """
         INPUT
             ultimate_curvature  : Kesitin maksimum eğrilik değeri. Kesitin moment-curvature eğrisinin idealleştirilmesinden tespit edilebilir.
@@ -193,7 +212,9 @@ class Performance:
         sınırlı_hasar     = 0
 
         rotation_performs = [collapse_Rotation,kontollu_hasar,sınırlı_hasar]
-        return rotation_performs
+        rotation_performs_limits = pd.DataFrame(rotation_performs).T
+        rotation_performs_limits.columns = ["GÖ","KH","SH"]
+        return rotation_performs_limits
 
     def Frame_Perform_Level(self,steelStrainLevel,concStrainLevel,rotationLevel):
         frame_Level = pd.DataFrame(columns=["EleId","eps_CP","eps_LS","eps_IO","epc_CP","epc_LS","epc_IO","rot_CP","rot_LS","rot_IO"],index=[i for i in range(1,len(ops.getEleTags())+1)])

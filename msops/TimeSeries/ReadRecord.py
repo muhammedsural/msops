@@ -138,4 +138,4 @@ def ChangeTimeSeriesForPGA(acceleration : list,targetPGA : float) -> list:
     realPGA = max(acceleration)
     coef = targetPGA/realPGA
     newTimeSeries = [acc*coef for acc in acceleration]
-    return newTimeSeries
+    return newTimeSeries,coef

@@ -1,3 +1,5 @@
+import os
+from pandas import DataFrame
 
 
 Rebars = {
@@ -60,6 +62,35 @@ def CalculateRebarNumbers(NeedRebarArea : float,UseRebarDiameter : int) -> int:
     
 
     return int(NumberRebar)
+    
+def CreateOutputsFolder(TargetPGA : list,EarthquakeName : str):
+    # Sonuçların kayıt edileceği klasör oluşturulup csv dosyaları kayıt edilecek
+    Outputspath=f"./Outputs"
+    eventsoutput =f"./Outputs/{EarthquakeName}"
+    if os.path.exists(Outputspath) != True:
+        os.mkdir(Outputspath)
+    if os.path.exists(eventsoutput) != True:
+        os.mkdir(eventsoutput)
+    for PGA in TargetPGA:
+        pgaoutputs = f"./Outputs/{EarthquakeName}/{PGA}g"
+        csvoutputs = f"./Outputs/{EarthquakeName}/{PGA}g/CsvFiles"
+        momrotoutputs = f"./Outputs/{EarthquakeName}/{PGA}g/MomentRotationPlots"
+        energyoutputs = f"./Outputs/{EarthquakeName}/{PGA}g/EnergyPlots"
+        momcurvoutputs = f"./Outputs/{EarthquakeName}/{PGA}g/StressStrainPlots"
+        if os.path.exists(pgaoutputs) != True:
+            os.makedirs(f"{pgaoutputs}")
+        if os.path.exists(csvoutputs) != True:
+            os.makedirs(f"{csvoutputs}")
+        if os.path.exists(momrotoutputs) != True:
+            os.makedirs(f"{momrotoutputs}")
+        if os.path.exists(energyoutputs) != True:
+            os.makedirs(f"{energyoutputs}")
+        if os.path.exists(momcurvoutputs) != True:
+            os.makedirs(f"{momcurvoutputs}")
+
+def CreateCsvFiles(FilePath : str,FileName: str ,Data : DataFrame):
+    Data.to_csv(f"{FilePath}/{FileName}.csv",index = False, encoding='utf-8')
+
 
 """if __name__ == '__main__':
     for rebar in Rebars.keys():
