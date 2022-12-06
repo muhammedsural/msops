@@ -36,7 +36,21 @@ class plotter:
         ax.set_xlabel('Time [Sec]')
         ax.set_ylabel(f'Horizontal Displacement of node {max(ops.getNodeTags())}')
         plt.show()
-    
+
+    def plot_TNodeTime(time : list,NodalDisplacement : DataFrame):
+        topnode = NodalDisplacement.query(f"Nodetags == {max(ops.getNodeTags())}")
+
+        fig, ax = plt.subplots(figsize=(25,10))
+        fig.subplots_adjust(bottom=0.15, left=0.2)
+        ax.grid()
+        #plt.scatter(index*dt,value, s=80, c="r", alpha=0.5) maximum deplasman noktası
+        ax.plot(time[1::],topnode["NodeDispX"])
+
+        ax.axhline(0, color='black', lw=2)
+        ax.set_xlabel('Time [Sec]')
+        ax.set_ylabel(f'Horizontal Displacement of node {max(ops.getNodeTags())}')
+        plt.show()
+
     def plot_MomRot(itotalRot,ibasicForce,jtotalRot,jbasicForce,count: list = [1 for i in range(5)]):
         """
          Time History analizi yapıldıktan sonra elde edilen sectionDataframeindeki ilgili kolonlar input olarak verilmeli

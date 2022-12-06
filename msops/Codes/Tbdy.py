@@ -96,8 +96,6 @@ class FundemantelParameters:
 
         return ColumnDrift
 class Performance:
-    def __init__(self) -> None:
-        pass
         
     def Steelstrain_Perform_Level(self,eps_su):
         """
@@ -373,3 +371,157 @@ class Performance:
                     #print("Sınırlı hasar")
 
         pass"""
+
+    def FramePerformanceCheck(self,column_dict,floorFrames,Lpl,beam_H,important_points_ext,important_points_int,FiberStressStrain,MomentRotation) -> pd.DataFrame:
+
+        
+        steelstrainlimits = self.Steelstrain_Perform_Level(eps_su=0.08)
+
+        ColumnProp = pd.DataFrame(column_dict).T
+        ColumnProp.columns = ["iNode","jNode","Length","bw","h","cover","matcovtag","matcoretag","matsteeltag","Lpl"]
+
+        # Rotation and strain performance limits according to TBDY
+        #==================================================================================
+        PerfLimit = floorFrames.copy()
+        PerfLimit["H"] = ColumnProp["h"]
+        PerfLimit["Lpl"] = ColumnProp["Lpl"]
+        PerfLimit.H.fillna(value= 0.5,inplace=True)
+        PerfLimit.Lpl.fillna(value=Lpl,inplace=True)
+        limitsPerform = pd.DataFrame(columns=["ConcStrainGÖ",
+                                                "ConcStrainKH",
+                                                "ConcStrainSH",
+                                                "SteelStrainGÖ",
+                                                "SteelStrainKH",
+                                                "SteelStrainSH",
+                                                "RotationGÖ",
+                                                "RotationKH",
+                                                "RotationSH"],index=ops.getEleTags())
+        for eleid,eletype in zip(PerfLimit["EleId"],PerfLimit["EleType"]):
+
+            if eletype == "Column":
+
+                if PerfLimit["H"][eleid] == 0.3:
+                    colext_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=Lpl,Ls=2*0.3,db=16)
+                    
+                    limitsPerform.loc[eleid] = [round(important_points_ext['performance'][0][0],4),round(important_points_ext['performance'][1][0],4),round(important_points_ext['performance'][2][0],4),steelstrainlimits[0], steelstrainlimits[1],steelstrainlimits[2], round(colext_perf["GÖ"][0],4),round(colext_perf["KH"][0],4),round(colext_perf["SH"][0],4)]
+                
+                else:
+                    colint_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=Lpl,Ls=2*0.7,db=16)
+                    
+                    limitsPerform.loc[eleid] = [
+                                                    round(important_points_int['performance'][0][0],4),
+                                                    round(important_points_int['performance'][1][0],4),
+                                                    round(important_points_int['performance'][2][0],4),
+                                                    steelstrainlimits[0],
+                                                    steelstrainlimits[1],
+                                                    steelstrainlimits[2],
+                                                    round(colint_perf["GÖ"][0],4),
+                                                    round(colint_perf["KH"][0],4),
+                                                    round(colint_perf["SH"][0],4)
+                                                ]
+            #beam only rotation
+            else:
+                
+                beam_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=Lpl,Ls=2*beam_H,db=16)
+                limitsPerform.loc[eleid] = [
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                round(beam_perf["GÖ"][0],4),
+                                                round(beam_perf["KH"][0],4),
+                                                round(beam_perf["SH"][0],4)
+                                            ]
+            
+        PerfLimit = pd.concat([PerfLimit,limitsPerform],axis=1)
+        PerfLimit.head()
+
+        # Fiber strain max values core con and steel materials
+        #==========================================================================================================
+        FiberStressStrainMax = FiberStressStrain.copy()
+        FiberStressStrainMax.drop(columns=["TopCoverStress","TopCoverStrain","TopCoreStress","TopSteelStress","BotCoverStress","BotCoverStrain","BotCoreStress","BotSteelStress"], axis=1,inplace=True)
+        corestrain = [max(abs(top),abs(bot)) for top,bot in zip(FiberStressStrainMax["TopCoreStrain"],FiberStressStrainMax["BotCoreStrain"])]
+        steelstrain = [max(abs(top),abs(bot)) for top,bot in zip(FiberStressStrainMax["TopSteelStrain"],FiberStressStrainMax["BotSteelStrain"])]
+        FiberStressStrainMax["CoreStrainMax"]  = corestrain
+        FiberStressStrainMax["SteelStrainMax"] = steelstrain
+        FiberStressStrainMax.drop(columns=['TopCoreStrain', 'TopSteelStrain','BotCoreStrain', 'BotSteelStrain'], axis=1,inplace=True)
+        FiberStressStrainMax.columns = ["Eleid","CoreStrainMax","SteelStrainMax"]
+        #==========================================================================================================
+        FramePerfmCheck = MomentRotation.copy()
+        FramePerfmCheck.drop(columns=['iMoment', 'jMoment'], axis=1,inplace=True)
+        #==========================================================================================================
+        for i in range(FiberStressStrainMax.last_valid_index()+1,FramePerfmCheck.last_valid_index()+1):
+            FiberStressStrainMax.loc[i] = [0,0,0]
+            
+        FramePerfmCheck = pd.concat([FramePerfmCheck,FiberStressStrainMax],axis=1)
+
+        # Strain performance check
+        #==========================================================================================================
+        # 0 -> Sınırlı Hasar
+        # 1 -> Belirgi Hasar
+        # 2 -> İleri Hasar
+        # 3 -> Göçme Durumu
+        # 4 -> Not Fiber
+        core_strainlevel = []
+        steel_strainslevel = []
+        for index,(core_strain,steel_strains) in zip(FramePerfmCheck.index,zip(FramePerfmCheck["CoreStrainMax"],FramePerfmCheck["SteelStrainMax"])):
+            if FramePerfmCheck["Eletags"][index] == FramePerfmCheck["Eleid"][index]:
+                if core_strain > PerfLimit["ConcStrainGÖ"][FramePerfmCheck["Eletags"][index]]:
+                    core_strainlevel.append(3)
+                elif core_strain < PerfLimit["ConcStrainGÖ"][FramePerfmCheck["Eletags"][index]] and core_strain >= PerfLimit["ConcStrainKH"][FramePerfmCheck["Eletags"][index]]:
+                    core_strainlevel.append(2)
+                elif core_strain < PerfLimit["ConcStrainKH"][FramePerfmCheck["Eletags"][index]] and core_strain >= PerfLimit["ConcStrainSH"][FramePerfmCheck["Eletags"][index]]:
+                    core_strainlevel.append(1)
+                elif core_strain < PerfLimit["ConcStrainSH"][FramePerfmCheck["Eletags"][index]]:
+                    core_strainlevel.append(0)
+                
+                if steel_strains > PerfLimit["SteelStrainGÖ"][FramePerfmCheck["Eletags"][index]]:
+                    steel_strainslevel.append(3)
+                elif steel_strains < PerfLimit["SteelStrainGÖ"][FramePerfmCheck["Eletags"][index]] and steel_strains >= PerfLimit["SteelStrainKH"][FramePerfmCheck["Eletags"][index]]:
+                    steel_strainslevel.append(2)
+                elif steel_strains < PerfLimit["SteelStrainKH"][FramePerfmCheck["Eletags"][index]] and steel_strains >= PerfLimit["SteelStrainSH"][FramePerfmCheck["Eletags"][index]]:
+                    steel_strainslevel.append(1)
+                elif steel_strains < PerfLimit["SteelStrainSH"][FramePerfmCheck["Eletags"][index]]:
+                    steel_strainslevel.append("0")
+            else:
+                core_strainlevel.append(4)
+                steel_strainslevel.append(4)
+
+                    
+        FramePerfmCheck["ConcretePerformLevel"] = core_strainlevel
+        FramePerfmCheck["SteelPerformLevel"] = steel_strainslevel
+
+        #rotation performance check
+        #==========================================================================================================
+        # 0 -> Sınırlı Hasar
+        # 1 -> Belirgi Hasar
+        # 2 -> İleri Hasar
+        # 3 -> Göçme Durumu
+        irotlevel = []
+        jrotlevel = []
+        for eletag,(irot,jrot) in zip(FramePerfmCheck["Eletags"],zip(FramePerfmCheck["iRotation"],FramePerfmCheck["jRotation"])):
+            if irot > PerfLimit["RotationGÖ"][eletag]:
+                irotlevel.append(3)
+            elif irot < PerfLimit["RotationGÖ"][eletag] and irot >= PerfLimit["RotationKH"][eletag]:
+                irotlevel.append(2)
+            elif irot < PerfLimit["RotationKH"][eletag] and irot >= PerfLimit["RotationSH"][eletag]:
+                irotlevel.append(1)
+            elif irot < PerfLimit["RotationSH"][eletag]:
+                irotlevel.append(0)
+            
+            if jrot > PerfLimit["RotationGÖ"][eletag]:
+                jrotlevel.append(3)
+            elif jrot < PerfLimit["RotationGÖ"][eletag] and jrot >= PerfLimit["RotationKH"][eletag]:
+                jrotlevel.append(2)
+            elif jrot < PerfLimit["RotationKH"][eletag] and jrot >= PerfLimit["RotationSH"][eletag]:
+                jrotlevel.append(1)
+            elif jrot < PerfLimit["RotationSH"][eletag]:
+                jrotlevel.append(0)
+
+        FramePerfmCheck["iRotPerformLevel"] = irotlevel
+        FramePerfmCheck["jRotPerformLevel"] = jrotlevel
+        FramePerfmCheck.drop(columns=['Eleid'], axis=1,inplace=True)
+        print(" 0 -> Sınırlı Hasar; 1 -> Belirgi Hasar; 2 -> İleri Hasar; 3 -> Göçme Durumu; 4 -> Not Fiber")
+        return FramePerfmCheck
