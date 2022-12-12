@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def calc_timegap(Td,damp_ratio,T) -> float:
@@ -50,7 +51,12 @@ def ReadRecord (filePath:str,gap:float,g=9.81,plot=1):
         #ax.axhline(0, color='black', lw=2)
         if g == 1:
             ax.set_ylabel('Acceleration [g]')
-    return time,acceleration,npts,dt
+    TimeSeries = pd.DataFrame(columns=["Time","Acceleration"])
+    
+    TimeSeries["Time"] = time
+    TimeSeries["Acceleration"] = acceleration
+
+    return TimeSeries
     
 def load_PEERNGA_record(filepath):
 
@@ -133,9 +139,12 @@ def main_after_record(eventname="Mammoth_Lakes",plot=False):
           #plt.figure(figsize=[60,30])
             #plt.plot(mainafterTime[i],mainafterAcc[i]) 
 
-def ChangeTimeSeriesForPGA(acceleration : list,targetPGA : float) -> list:
+def ChangeTimeSeriesForPGA(TimeSeries : pd.DataFrame,targetPGA : float) -> pd.DataFrame:
     """ Zaman serisini PGA değerine göre verilen ivme değeri ile orantılayarak yeniden oluşturur."""
-    realPGA = max(acceleration)
+    realPGA = TimeSeries.Acceleration.max()
     coef = targetPGA/realPGA
-    newTimeSeries = [acc*coef for acc in acceleration]
-    return newTimeSeries,coef
+    newTimeSeries = [acc*coef for acc in TimeSeries.Acceleration]
+    TimeSeries["ChangedAcc"] = newTimeSeries
+    return TimeSeries
+
+

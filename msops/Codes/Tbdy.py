@@ -1,6 +1,10 @@
 import pandas as pd
 import math as mt
 import openseespy.opensees as ops
+import numpy as np
+from scipy.interpolate import interp1d
+from statistics import median
+import matplotlib.pyplot as plt
 
 class FundemantelParameters:
 
@@ -525,3 +529,159 @@ class Performance:
         FramePerfmCheck.drop(columns=['Eleid'], axis=1,inplace=True)
         print(" 0 -> Sınırlı Hasar; 1 -> Belirgi Hasar; 2 -> İleri Hasar; 3 -> Göçme Durumu; 4 -> Not Fiber")
         return FramePerfmCheck
+
+class TargetSpectrum:
+
+    def HorizontalElasticSpectrum(self,Ss : float, S1 : float, soil : str)-> pd.DataFrame:
+        """
+        Args:
+        Ss: Spectral Acceleration Parameter at Short Periods
+        S1: Spectral Acceleration Parameter at 1-sec
+        soil: Soil Type for example "ZA" or "ZB"
+        Output
+            Targetspektra : TargetSpektra according to TBDY
+        """
+
+        Ss_range = [0.25 , 0.50 , 0.75, 1.00 , 1.25 , 1.50 ]
+        FS_table = {"ZA": [0.8 , 0.8 , 0.8 , 0.8 , 0.8 , 0.8], 
+                    "ZB": [0.9 , 0.9 , 0.9 , 0.9 , 0.9 , 0.9], 
+                    "ZC": [1.3 , 1.3 , 1.2 , 1.2 , 1.2 , 1.2],
+                    "ZD": [1.6 , 1.4 , 1.2 , 1.1 , 1.0 , 1.0],
+                    "ZE": [2.4 , 1.7 , 1.3 , 1.1 , 0.9 , 0.8]}
+
+        S1_range = [0.10 , 0.20 , 0.30, 0.40 , 0.50 , 0.60 ]
+        F1_table = {"ZA": [0.8 , 0.8 , 0.8 , 0.8 , 0.8 , 0.8], 
+                    "ZB": [0.8 , 0.8 , 0.8 , 0.8 , 0.8 , 0.8], 
+                    "ZC": [1.5 , 1.5 , 1.5 , 1.5 , 1.5 , 1.4],
+                    "ZD": [2.4 , 2.2 , 2.0 , 1.9 , 1.8 , 1.7],
+                    "ZE": [4.2 , 3.3 , 2.8 , 2.4 , 2.2 , 2.0]}
+
+        if Ss < Ss_range[0]:
+            FS_satir = np.polyfit(Ss_range[0:2], list(FS_table[soil])[0:2], 1)
+            FS_katsayisi = np.poly1d( FS_satir )
+            Fs = float( format(FS_katsayisi(Ss) , '.2f') )
+            SDs = Ss * Fs
+        elif Ss > Ss_range[-1]:
+            FS_satir = np.polyfit(Ss_range[-3:-1], list(FS_table[soil])[-3:-1], 1)
+            FS_katsayisi = np.poly1d( FS_satir )
+            Fs = float( format(FS_katsayisi(Ss) , '.2f') )
+            SDs = Ss * Fs    
+        else:
+            FS_satir = interp1d(Ss_range, FS_table[soil], kind='linear')
+            FS_katsayisi = FS_satir(Ss)
+            Fs = round( float(FS_katsayisi) , 2) 
+            SDs = Ss * Fs
+
+        if S1 < S1_range[0] :
+            F1_satir = np.polyfit(S1_range[0:2], list(F1_table[soil])[0:2], 1)
+            F1_katsayisi = np.poly1d( F1_satir )
+            F1 = float( format(F1_katsayisi(S1) , '.2f') )
+            SD1 = S1 * F1
+        elif S1 > S1_range[-1]:
+            F1_satir = np.polyfit(S1_range[-3:-1], list(F1_table[soil])[-3:-1], 1)
+            F1_katsayisi = np.poly1d( F1_satir )
+            F1 = float( format(F1_katsayisi(S1) , '.2f') )
+            SD1 = S1 * F1
+
+        else:    
+            F1_satir = interp1d(S1_range, F1_table[soil], kind='linear')
+            F1_katsayisi = F1_satir(S1)
+            F1 = round(float(F1_katsayisi) , 2)
+            SD1 = S1 * F1
+            
+        TA = 0.2 * SD1 / SDs
+        TB = SD1 / SDs
+        TL = 6
+        
+        
+        T_list = np.arange(0.0, TL,.005)
+            
+        Sa = []
+        
+        for i in T_list:
+            
+            if i <TA:
+                Sa.append(round((0.4 + 0.6*(i/TA))*SDs, 4))
+                
+            elif i >= TA and i<=TB:
+                Sa.append(round(SDs, 4))
+                
+            elif i>TB and i <=TL:
+                Sa.append(round(SD1/i, 4))
+                
+            elif i>TL:
+                Sa.append(round(SD1*TL/(i**2), 4))
+                
+        target_spec = {"T" : T_list,
+                    "Sa" : Sa}
+
+        target_spec_df = pd.DataFrame().from_dict(target_spec)
+        
+        return target_spec_df
+
+    def VerticalElasticSpektrum(self):
+        pass
+
+    def HorizontalDisplacementSpectrum(self):
+        pass
+    
+    def Calc_Ra(self,R : int, T:float, I : float, D : float, SD1:float, SDs:float):
+        """Deprem yükü azaltma katsayisi"""
+        TB = SD1 / SDs
+        if T > TB:
+            Ra = R/I
+        else:
+            Ra = D + ((R/I)-D)*(T/TB)
+        return Ra
+
+    def ReducedTargetSpectrum(self,TargetSpectrum : pd.DataFrame,R : int, I : float, D : float, SD1 : float, SDs : float) -> pd.DataFrame:
+        """Reduced Target Spectra according to TBDY. TargetSpectrum -> HorizontalElasticSpectrum"""
+        Tw = TargetSpectrum.T
+        RaT = [ self.Calc_Ra(R = R, T = T, I = I, D = D, SD1 =SD1 ,SDs = SDs) for T in Tw ]
+        SaR = [(Sa/Ra) for Sa,Ra in zip(TargetSpectrum["Sa"],RaT)]
+        TargetSpectrum["RaT"] = RaT
+        TargetSpectrum["SaR"] = SaR
+
+        return TargetSpectrum
+    
+    def TimeSeriesSpectra(Acceleration : list, Time : list,):    
+        sampling_interval = Time[1]-Time[0]
+        damping_ratio = 0.05
+        Sd = []
+        Sv = []
+        Sa = []
+        
+        T = np.arange(0.05, 8.0,.005)
+        for i in T:
+            omega = 2*np.pi/i 
+            mass = 1 
+            k = ((omega)**2)*mass
+            c = 2*mass*omega*damping_ratio
+            K = k+3*c/sampling_interval + 6*mass/(sampling_interval**2)
+            a = 6*mass / sampling_interval + 3*c
+            b = 3*mass + sampling_interval*c/2
+            u= [0]
+            v= [0]
+            ac= [0] # INITIAL CONDITIONS
+            for j in range(len(Acceleration)-1) :
+                df = - ( Acceleration[j+1] - Acceleration[j])+ a*v[j] + b*ac[j] # delta force
+                du = df / K
+                dv = 3*du / sampling_interval - 3*v[j] - sampling_interval * ac[j] /2    
+                dac = 6* (du - sampling_interval*v[j]) / (sampling_interval**2) - 3* ac[j]
+                u.append(u[j] + du)
+                v.append(v[j] + dv)
+                ac.append(ac[j] + dac)
+            Sd.append(max([abs(x) for x in u]))
+            #Sv.append(max([abs(x) for x in v]))
+            #Sa.append(max([abs(x) for x in ac]))
+            Sv.append(Sd[-1]*omega)
+            Sa.append(Sd[-1]*omega**2)
+
+        # Gorselleştirmesi   
+        plt.figure(figsize=[10,5] );
+        plt.suptitle(' Response Spectra' )
+        plt.subplot(3,1,1),plt.plot(T,Sd) ; plt.ylabel('Sd (m)') ; plt.grid()
+        plt.subplot(3,1,2),plt.plot(T,Sv) ; plt.ylabel('Sv (m/s)'); plt.grid()
+        plt.subplot(3,1,3),plt.plot(T,Sa) ; plt.ylabel('Sa (m/s2)'); plt.grid()
+
+        return T,Sa,Sv,Sd

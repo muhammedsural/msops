@@ -88,6 +88,31 @@ def CreateOutputsFolder(TargetPGA : list,EarthquakeName : str):
         if os.path.exists(momcurvoutputs) != True:
             os.makedirs(f"{momcurvoutputs}")
 
+def CreateOutputsFolder(EarthquakeName : str):
+    # Sonuçların kayıt edileceği klasör oluşturulup csv dosyaları kayıt edilecek
+    Outputspath=f"./Outputs"
+    eventsoutput =f"./Outputs/{EarthquakeName}"
+    if os.path.exists(Outputspath) != True:
+        os.mkdir(Outputspath)
+    if os.path.exists(eventsoutput) != True:
+        os.mkdir(eventsoutput)
+
+    pgaoutputs = f"./Outputs/{EarthquakeName}"
+    csvoutputs = f"./Outputs/{EarthquakeName}/CsvFiles"
+    momrotoutputs = f"./Outputs/{EarthquakeName}/MomentRotationPlots"
+    energyoutputs = f"./Outputs/{EarthquakeName}/EnergyPlots"
+    momcurvoutputs = f"./Outputs/{EarthquakeName}/StressStrainPlots"
+    if os.path.exists(pgaoutputs) != True:
+        os.makedirs(f"{pgaoutputs}")
+    if os.path.exists(csvoutputs) != True:
+        os.makedirs(f"{csvoutputs}")
+    if os.path.exists(momrotoutputs) != True:
+        os.makedirs(f"{momrotoutputs}")
+    if os.path.exists(energyoutputs) != True:
+        os.makedirs(f"{energyoutputs}")
+    if os.path.exists(momcurvoutputs) != True:
+        os.makedirs(f"{momcurvoutputs}")
+
 def CreateCsvFiles(FilePath : str,FileName: str ,Data : DataFrame):
     Data.to_csv(f"{FilePath}/{FileName}.csv",index = False, encoding='utf-8')
 

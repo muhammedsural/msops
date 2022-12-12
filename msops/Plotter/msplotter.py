@@ -71,14 +71,14 @@ class plotter:
                 ax[2].plot( elasticRot[ele] ) , ax[2].axhline(c = "k") , ax[2].axvline(c = "k") , ax[2].set_xlabel("Step"), ax[2].set_ylabel( "Rotation (rad)") , ax[2].legend( ["Elastic"]) , ax[2].set_frame_on(False) ; 
                 plt.suptitle( f"{ele} Rotations Graphs".upper(), fontsize = 20 );
     
-    def plot_MomentRotation(MomentRotation : DataFrame,SaveFolder : str):
+    def plot_MomentRotation(MomentRotation : DataFrame,FigName : str,SaveFolder : str):
         for ele in ops.getEleTags():
             fig , ax = plt.subplots( 1,2 , sharex = True , sharey = True  , figsize=(20,5) )
             ax[0].plot( MomentRotation.query(f"Eletags == {ele} ")["iRotation"],MomentRotation.query(f"Eletags == {ele} ")["iMoment"] ) , ax[0].axhline(c = "k") , ax[0].axvline(c = "k") , ax[0].set_xlabel("Rotation (rad)"), ax[0].set_ylabel( "Moment (kNM)") , ax[0].legend( ["i node"]) , ax[0].set_frame_on(False) ; 
             ax[1].plot( MomentRotation.query(f"Eletags == {ele} ")["jRotation"],MomentRotation.query(f"Eletags == {ele} ")["jMoment"] ) , ax[1].axhline(c = "k") , ax[1].axvline(c = "k") , ax[1].set_xlabel("Rotation (rad)"), ax[1].set_ylabel( "Moment (kNM)") , ax[1].legend( ["j node"]) , ax[1].set_frame_on(False) ; plt.suptitle( f"Frame{ele} Hysteresis Graphs".upper(), fontsize = 20 );
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
-            plt.savefig(f"./{SaveFolder}/{ele}.png")
+            plt.savefig(f"./{SaveFolder}/{FigName}{ele}.png")
             plt.show()
     
     def plot_Energy(ibasicForce,jbasicForce,itotalrot,iplasticrot,ielasticrot,jtotalrot,jplasticrot,jelasticrot,count : int):
@@ -123,7 +123,7 @@ class plotter:
             continue
         plt.show() 
     
-    def plot_AllSection_Energy(SectionEnergy : DataFrame,SaveFolder: str):
+    def plot_AllSection_Energy(SectionEnergy : DataFrame, FigName : str, SaveFolder: str):
         for ele in ops.getEleTags():
             temp = SectionEnergy.query(f"Eletags == {ele} ")
             fig , ax = plt.subplots( 1,2 , sharex = True , sharey = True  , figsize=(20,8) )
@@ -132,10 +132,10 @@ class plotter:
             plt.suptitle( f" Frame{ele} Dissipated Energy Graphs".upper(), fontsize = 20 );fig.dpi=300
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
-            plt.savefig(f"./{SaveFolder}/{ele}.png")
+            plt.savefig(f"./{SaveFolder}/{FigName}{ele}.png")
             plt.show()  
 
-    def plot_AllFrame_Energy(ElementEnergy : DataFrame,SaveFolder: str):
+    def plot_AllFrame_Energy(ElementEnergy : DataFrame, FigName : str, SaveFolder: str):
         for ele in ops.getEleTags():
             temp = ElementEnergy.query(f"Eletags == {ele} ")
             fig,ax = plt.subplots(1,1 , sharex = True , sharey = True  , figsize=(20,8))
@@ -143,10 +143,10 @@ class plotter:
             plt.suptitle( f" Frame{ele} Dissipated Energy Graphs".upper(), fontsize = 20 );fig.dpi=300 
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
-            plt.savefig(f"./{SaveFolder}/Frame{ele}_Total.png")
+            plt.savefig(f"./{SaveFolder}/{FigName}{ele}.png")
             plt.show() 
 
-    def plot_StressStrain(StressStrain : DataFrame,SaveFolder : str):
+    def plot_StressStrain(StressStrain : DataFrame,FigName : str,SaveFolder : str):
         for ele in ops.getEleTags():
             temp = StressStrain.query(f"Eletags == {ele} ")
             fig , ax = plt.subplots( 1,1 , sharex = True , sharey = True  , figsize=(20,5) )
@@ -154,7 +154,7 @@ class plotter:
             plt.suptitle( f"Frame{ele} Stress-Strain Graph".upper(), fontsize = 20 );
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
-            plt.savefig(f"./{SaveFolder}/Frame{ele}_Total.png")
+            plt.savefig(f"./{SaveFolder}/{FigName}{ele}.png")
             plt.show()
 
     #daha hazır değil
