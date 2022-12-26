@@ -582,7 +582,6 @@ class TargetSpectrum:
             F1_katsayisi = np.poly1d( F1_satir )
             F1 = float( format(F1_katsayisi(S1) , '.2f') )
             SD1 = S1 * F1
-
         else:    
             F1_satir = interp1d(S1_range, F1_table[soil], kind='linear')
             F1_katsayisi = F1_satir(S1)
@@ -644,14 +643,14 @@ class TargetSpectrum:
 
         return TargetSpectrum
     
-    def TimeSeriesSpectra(Acceleration : list, Time : list,):    
+    def TimeSeriesSpectra(self,Acceleration , Time ):    
         sampling_interval = Time[1]-Time[0]
         damping_ratio = 0.05
         Sd = []
         Sv = []
         Sa = []
         
-        T = np.arange(0.05, 8.0,.005)
+        T = np.arange(0.05, 6.0,.001)
         for i in T:
             omega = 2*np.pi/i 
             mass = 1 
@@ -678,10 +677,46 @@ class TargetSpectrum:
             Sa.append(Sd[-1]*omega**2)
 
         # Gorselleştirmesi   
-        plt.figure(figsize=[10,5] );
-        plt.suptitle(' Response Spectra' )
-        plt.subplot(3,1,1),plt.plot(T,Sd) ; plt.ylabel('Sd (m)') ; plt.grid()
-        plt.subplot(3,1,2),plt.plot(T,Sv) ; plt.ylabel('Sv (m/s)'); plt.grid()
-        plt.subplot(3,1,3),plt.plot(T,Sa) ; plt.ylabel('Sa (m/s2)'); plt.grid()
+        # plt.figure(figsize=[10,5] );
+        # plt.suptitle(' Response Spectra' )
+        # plt.subplot(3,1,1),plt.plot(T,Sd) ; plt.ylabel('Sd (m)') ; plt.grid()
+        # plt.subplot(3,1,2),plt.plot(T,Sv) ; plt.ylabel('Sv (m/s)'); plt.grid()
+        # plt.subplot(3,1,3),plt.plot(T,Sa) ; plt.ylabel('Sa (m/s2)'); plt.grid()
 
         return T,Sa,Sv,Sd
+    
+    def LocationSeriesSpectra(self,T,Accelertions,Periods):
+        targetSa = 0
+        for index,T_series in enumerate(Periods):
+            if round(T_series,3) == T:
+                targetSa = Accelertions[index]
+                break
+        return round(targetSa,4)
+
+    def LocationHorizontalSpectra(self,R:float,I:float,D:float,T:float,SD1:float,SDs:float) -> list:
+        """Elastik spektrum ile Ra katsayısı ile azaltılmış spektrumda yapının doğal titreşim periyoduna denk gelen spektral ivme değerinin listesini döndürür.
+            ilk değer elastik spektral ivmedir, ikinci değer azaltılmış spektral ivme değeridir.
+        """
+        TA = 0.2 * SD1 / SDs
+        TB = SD1 / SDs
+        TL = 6
+
+        if T <TA:
+            Sae = round((0.4 + 0.6*(T/TA))*SDs, 4)
+            
+        elif T >= TA and T<=TB:
+           Sae=round(SDs, 4)
+            
+        elif T>TB and T <=TL:
+            Sae=round(SD1/T, 4)
+            
+        elif T>TL:
+            Sae=round(SD1*TL/(T**2), 4)
+        
+        Ra = self.Calc_Ra(R, T, I , D , SD1, SDs)
+
+        SaR = round(Sae/Ra,4)
+        coeff = [Sae,SaR]
+        return coeff
+    
+

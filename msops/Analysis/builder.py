@@ -7,8 +7,13 @@ import numpy as np
 import logging
 from datetime import datetime
 import sys
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
 from scipy.integrate import cumtrapz
+pd.reset_option('all')
+import warnings
+warnings.simplefilter(action='ignore', category=ResourceWarning)
 
  
 class opsbuild:

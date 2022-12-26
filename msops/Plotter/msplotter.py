@@ -37,7 +37,7 @@ class plotter:
         ax.set_ylabel(f'Horizontal Displacement of node {max(ops.getNodeTags())}')
         plt.show()
 
-    def plot_TNodeTime(time : list,NodalDisplacement : DataFrame):
+    def plot_TNodeTime(time : list,NodalDisplacement : DataFrame, SaveFolder:str, FigName:str):
         topnode = NodalDisplacement.query(f"Nodetags == {max(ops.getNodeTags())}")
 
         fig, ax = plt.subplots(figsize=(25,10))
@@ -48,8 +48,11 @@ class plotter:
 
         ax.axhline(0, color='black', lw=2)
         ax.set_xlabel('Time [Sec]')
-        ax.set_ylabel(f'Horizontal Displacement of node {max(ops.getNodeTags())}')
-        plt.show()
+        ax.set_ylabel(f'Horizontal Displacement of node {max(ops.getNodeTags())} [m]')
+        
+        if os.path.exists(SaveFolder) != True:
+            os.mkdir(SaveFolder)
+        plt.savefig(f"{SaveFolder}\\{FigName}.png")
 
     def plot_MomRot(itotalRot,ibasicForce,jtotalRot,jbasicForce,count: list = [1 for i in range(5)]):
         """
@@ -78,8 +81,8 @@ class plotter:
             ax[1].plot( MomentRotation.query(f"Eletags == {ele} ")["jRotation"],MomentRotation.query(f"Eletags == {ele} ")["jMoment"] ) , ax[1].axhline(c = "k") , ax[1].axvline(c = "k") , ax[1].set_xlabel("Rotation (rad)"), ax[1].set_ylabel( "Moment (kNM)") , ax[1].legend( ["j node"]) , ax[1].set_frame_on(False) ; plt.suptitle( f"Frame{ele} Hysteresis Graphs".upper(), fontsize = 20 );
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
-            plt.savefig(f"./{SaveFolder}/{FigName}{ele}.png")
-            plt.show()
+            plt.savefig(f"{SaveFolder}/{FigName}{ele}.png")
+            #plt.show()
     
     def plot_Energy(ibasicForce,jbasicForce,itotalrot,iplasticrot,ielasticrot,jtotalrot,jplasticrot,jelasticrot,count : int):
         """Plot Dissipated Energy Graphs"""
@@ -132,8 +135,11 @@ class plotter:
             plt.suptitle( f" Frame{ele} Dissipated Energy Graphs".upper(), fontsize = 20 );fig.dpi=300
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
-            plt.savefig(f"./{SaveFolder}/{FigName}{ele}.png")
-            plt.show()  
+            if os.path.exists(f"{SaveFolder}\\Sectionsplot") != True:
+                os.mkdir(f"{SaveFolder}\\Sectionsplot")
+
+            plt.savefig(f"{SaveFolder}\\Sectionsplot\\{FigName}{ele}.png")
+            #plt.show()  
 
     def plot_AllFrame_Energy(ElementEnergy : DataFrame, FigName : str, SaveFolder: str):
         for ele in ops.getEleTags():
@@ -143,8 +149,11 @@ class plotter:
             plt.suptitle( f" Frame{ele} Dissipated Energy Graphs".upper(), fontsize = 20 );fig.dpi=300 
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
-            plt.savefig(f"./{SaveFolder}/{FigName}{ele}.png")
-            plt.show() 
+            if os.path.exists(f"{SaveFolder}\\Framesplot") != True:
+                os.mkdir(f"{SaveFolder}\\Framesplot")
+
+            plt.savefig(f"{SaveFolder}\\Framesplot\\{FigName}{ele}.png")
+            #plt.show() 
 
     def plot_StressStrain(StressStrain : DataFrame,FigName : str,SaveFolder : str):
         for ele in ops.getEleTags():
@@ -154,8 +163,8 @@ class plotter:
             plt.suptitle( f"Frame{ele} Stress-Strain Graph".upper(), fontsize = 20 );
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
-            plt.savefig(f"./{SaveFolder}/{FigName}{ele}.png")
-            plt.show()
+            plt.savefig(f"{SaveFolder}/{FigName}{ele}.png")
+            #plt.show()
 
     #daha hazır değil
     def ms_as_top_disp_plot(dt,*values):
