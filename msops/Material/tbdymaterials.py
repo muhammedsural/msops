@@ -5,7 +5,7 @@ from ..Units.Unit import Unit
 
 def tbdy_mander(
                 celiksınıfı,f_co,bw,h,s,etriye_çapı,boyuna_donatı_çapı,pas_payı,
-                numBarsTop,numBarsBot,gövde_donatı_adeti,x_koladeti,y_koladeti,
+                numBarsTop,numBarsBot,gövde_donatı_adeti,x_koladeti,y_koladeti,plot=True
                ):
 
     """
@@ -37,6 +37,11 @@ def tbdy_mander(
                             "strain_stress" : [eps_c,f_c,],
                             "values"        : [fc1C,eps1C,fc2C,eps2C]
                         }
+
+            important_points = {
+                            "performance" : [collapse_pr,life_safety,immediate_occ],
+                            "curvepoints" : [confined_yield_point,confined_max_point,confined_ultimate_point]
+                       }
 
             eps_c: 0 dan ultimate strain değerine kadar 0.00001 adımla oluşturulmuş liste
             f_c  : Her eps_c değerine karşılık hesaplanmış beton gerilmesi listesi
@@ -216,39 +221,39 @@ def tbdy_mander(
         if eps == eps_co:
             f_co_sargılı = f_c_birim
 
-    
-    # fig, ax = plt.subplots(figsize=(10,10))
-    # fig.subplots_adjust(bottom=0.15, left=0.2)
-    # ax.grid()
-    
-    # #Sargısız Çizimi
-    # ax.plot(eps_c_sargısız,f_c_sargısız,label="UnConfined model")
-    # ax.plot(eps_co,f_co,'o',c="b")
-    # ax.annotate(f'{round(eps_co,4)}/{round(f_co,2)}', xy=(eps_co, f_co), xytext=(eps_co+0.001, f_co+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
-    # ax.plot(eps_cu_sargısız,f_c_birim_sargısız,'o',c="b")
-    # ax.annotate(f'{round(eps_cu_sargısız,4)}/{round(f_c_birim_sargısız,2)}', xy=(eps_cu_sargısız, f_c_birim_sargısız), xytext=(eps_cu_sargısız+0.001, f_c_birim_sargısız+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+    if plot:
+        fig, ax = plt.subplots(figsize=(10,10))
+        fig.subplots_adjust(bottom=0.15, left=0.2)
+        ax.grid()
+        
+        #Sargısız Çizimi
+        ax.plot(eps_c_sargısız,f_c_sargısız,label="UnConfined model")
+        ax.plot(eps_co,f_co,'o',c="b")
+        ax.annotate(f'{round(eps_co,4)}/{round(f_co,2)}', xy=(eps_co, f_co), xytext=(eps_co+0.001, f_co+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+        ax.plot(eps_cu_sargısız,f_c_birim_sargısız,'o',c="b")
+        ax.annotate(f'{round(eps_cu_sargısız,4)}/{round(f_c_birim_sargısız,2)}', xy=(eps_cu_sargısız, f_c_birim_sargısız), xytext=(eps_cu_sargısız+0.001, f_c_birim_sargısız+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
 
-    # #Sargılı çizimi
-    # ax.plot(eps_c,f_c,label="Confined model")
-    # ax.plot(eps_co,f_co_sargılı,'o',c="g") #strain 0.002 deki stress-strain noktasının çizimi sargılı
-    # ax.annotate(f'{round(eps_co,4)}/{round(f_co_sargılı,2)}', xy=(eps_co, f_co_sargılı), xytext=(eps_co+0.001, f_co_sargılı+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
-    # ax.plot(eps_cc,f_cc,'o',c="g")         #Maximum stress noktası sargılı
-    # ax.annotate(f'{round(eps_cc,4)}/{round(f_cc,2)}', xy=(eps_cc, f_cc), xytext=(eps_cc+0.001, f_cc+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
-    # ax.plot(eps_cu,f_c_birim,'o',c="g")    #Ultimate nokta sargılı
-    # ax.annotate(f'{round(eps_cu,4)}/{round(f_c_birim,2)}', xy=(eps_cu, f_c_birim), xytext=(eps_cu-0.001, f_c_birim-2),arrowprops=dict(facecolor='black', shrink=0.05))
-    
-    # #Performans Noktaları
-    # ax.plot(eps_cgö,f_cgö,'o',c="r",label = f"GÖ-{round(eps_cgö,4)}/{round(f_cgö,2)}")
-    # ax.plot(eps_ckh,f_ckh,'o',c="y",label = f"KH-{round(eps_ckh,4)}/{round(f_ckh,2)}")
-    # ax.plot(eps_csh,f_csh,'o',c="b",label = f"SH-{round(eps_csh,4)}/{round(f_csh,2)}")
+        #Sargılı çizimi
+        ax.plot(eps_c,f_c,label="Confined model")
+        ax.plot(eps_co,f_co_sargılı,'o',c="g") #strain 0.002 deki stress-strain noktasının çizimi sargılı
+        ax.annotate(f'{round(eps_co,4)}/{round(f_co_sargılı,2)}', xy=(eps_co, f_co_sargılı), xytext=(eps_co+0.001, f_co_sargılı+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+        ax.plot(eps_cc,f_cc,'o',c="g")         #Maximum stress noktası sargılı
+        ax.annotate(f'{round(eps_cc,4)}/{round(f_cc,2)}', xy=(eps_cc, f_cc), xytext=(eps_cc+0.001, f_cc+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+        ax.plot(eps_cu,f_c_birim,'o',c="g")    #Ultimate nokta sargılı
+        ax.annotate(f'{round(eps_cu,4)}/{round(f_c_birim,2)}', xy=(eps_cu, f_c_birim), xytext=(eps_cu-0.001, f_c_birim-2),arrowprops=dict(facecolor='black', shrink=0.05))
+        
+        #Performans Noktaları
+        ax.plot(eps_cgö,f_cgö,'o',c="r",label = f"GÖ-{round(eps_cgö,4)}/{round(f_cgö,2)}")
+        ax.plot(eps_ckh,f_ckh,'o',c="y",label = f"KH-{round(eps_ckh,4)}/{round(f_ckh,2)}")
+        ax.plot(eps_csh,f_csh,'o',c="b",label = f"SH-{round(eps_csh,4)}/{round(f_csh,2)}")
 
-    # ax.set_xlabel('Strain (mm)')  # Add an x-label to the axes.
-    # ax.set_ylabel('Stress (MPa)')  # Add a y-label to the axes.
-    # ax.set_title("Mander Model")  # Add a title to the axes.
-    # ax.legend(loc='lower right')
-    # plt.show()
+        ax.set_xlabel('Strain (mm)')  # Add an x-label to the axes.
+        ax.set_ylabel('Stress (MPa)')  # Add a y-label to the axes.
+        ax.set_title("Mander Model")  # Add a title to the axes.
+        ax.legend(loc='lower right')
+        plt.show()
     
-    fc1U  = -f_co          # UNCONFINED concrete (todeschini parabolic model), maximum stress
+    fc1U  = -f_co*Unit.MPa          # UNCONFINED concrete (todeschini parabolic model), maximum stress
     eps1U = -eps_c_sargısız[f_c_sargısız.index(max(f_c_sargısız))]      # strain at maximum strength of unconfined concrete
     fc2U  = -f_c_sargısız[-1]*Unit.MPa    # ultimate stress
     eps2U = -eps_c_sargısız[-1]       # strain at ultimate stress

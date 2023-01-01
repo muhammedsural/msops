@@ -136,7 +136,7 @@ class RecSection:
         NumBarsInterior    = self.numrebars[1] 
         #==================================================================================================================================
         # Mander modeline göre stress ve strain değerlerinin bulunması
-        unconfined,confined,impoints=tbdy_mander("B500C",
+        unconfined,confined,impoints=tbdy_mander("S420",
                                         fck,
                                         self.b,
                                         self.h,
@@ -150,20 +150,8 @@ class RecSection:
                                         x_koladeti,
                                         y_koladeti
                                     )
-        print(f'fck={fck}, b={self.b}, h={self.h}, s={s}, etriye çapı ={etriye_capi}, boyuna donatı çapı ={bardiameter}, pas payı ={self.cover}, üst donatı sayısı={NumBarsTop}, alt donatı sayısı={NumBarsBot}, gövde donatı sayısı={NumBarsInterior}, x kol adeti={x_koladeti}, y kol adeti{y_koladeti} ')
-        # unconfined concrete
-        #=============================================================================
-        fc1U  = -fck         # UNCONFINED concrete (todeschini parabolic model), maximum stress
-        eps1U =  unconfined['values'][1] # strain at maximum strength of unconfined concrete
-        fc2U  =  unconfined['values'][2] # ultimate stress
-        eps2U =  unconfined['values'][3] # strain at ultimate stress
-
-        # confined concrete
-        #=============================================================================
-        fc1C  = confined['values'][0] # CONFINED concrete (mander model), maximum stress
-        eps1C = confined['values'][1] # strain at maximum stres
-        fc2C  = confined['values'][2] # ultimate stress
-        eps2C = confined['values'][3] # strain at ultimate stress
+        
+        
         # tensile-strength properties~
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if tension is True:
@@ -178,6 +166,9 @@ class RecSection:
         if plot:
             plotter.plot_mander(confined['strain_stress'][0],confined['strain_stress'][1],label="Confined model")
             plotter.plot_mander(unconfined['strain_stress'][0],unconfined['strain_stress'][1],label="Unconfined model")
+
+        self.coverConc.inputArray = unconfined["values"]
+        self.coreConc.inputArray  = confined["values"]
     
     def __post_init__(self):
         self.area = self.calcArea()

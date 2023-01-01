@@ -270,7 +270,7 @@ class opsmaterial:
             self.inputArray = defaultmat[material]
             
         if self.stress_strain_test is True:
-            self.testMaterial(materialName=material,scaleFactor=self.inputArray[3])
+            self.testMaterial(materialName=material)
     
     def get_MaterialType(self) -> str:
         matType= {

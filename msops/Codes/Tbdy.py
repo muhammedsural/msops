@@ -79,7 +79,7 @@ class FundemantelParameters:
             
         """
         ColumnProp = pd.DataFrame(column_dict).T
-        ColumnProp.columns = ["iNode","jNode","Length","bw","h","cover","matcovtag","matcoretag","matsteeltag","Lpl"]
+        ColumnProp.columns = ["iNode","jNode","Length","bw","h","cover","matcovtag","matcoretag","matsteeltag","Lpl","Location"]
 
         ColumnDrift = pd.DataFrame(columns=["EleTags","Floor","DeltaXMax","DeltaYMax","Length","XDriftCheck","YDriftCheck"],index=column_dict.keys())
         ColumnDrift["EleTags"] = column_dict.keys()
@@ -217,12 +217,6 @@ class Performance:
         rotation_performs_limits = pd.DataFrame(rotation_performs).T
         rotation_performs_limits.columns = ["GÖ","KH","SH"]
         return rotation_performs_limits
-
-    def Frame_Perform_Level(self,steelStrainLevel,concStrainLevel,rotationLevel):
-        frame_Level = pd.DataFrame(columns=["EleId","eps_CP","eps_LS","eps_IO","epc_CP","epc_LS","epc_IO","rot_CP","rot_LS","rot_IO"],index=[i for i in range(1,len(ops.getEleTags())+1)])
-        for steel,(conc,rot) in zip(steelStrainLevel,zip(concStrainLevel,rotationLevel)):
-            print(steel,conc,rot)
-        pass
     
     """def Frame_Performance_Check(self,steelStrainLevel,concStrainLevel,rotationLevel):
          
@@ -376,8 +370,106 @@ class Performance:
 
         pass"""
 
-    def FramePerformanceCheck(self,column_dict,floorFrames,Lpl,beam_H,important_points_ext,important_points_int,FiberStressStrain,MomentRotation) -> pd.DataFrame:
 
+    def FramePerformanceBoundries(self,column_dict : dict,beam_dict : dict ,floorFrames : pd.DataFrame,important_points_ext : dict,important_points_int : dict) -> pd.DataFrame:
+        """Calculate rotation and strain performance limits for all frame elements"""
+        steelstrainlimits = self.Steelstrain_Perform_Level(eps_su=0.08)
+
+        ColumnProp = pd.DataFrame(column_dict).T
+        BeamProp = pd.DataFrame(beam_dict).T
+        ColumnProp.columns = ["iNode","jNode","Length","bw","h","cover","matcovtag","matcoretag","matsteeltag","Lpl","Location"]
+        BeamProp.columns = ["iNode","jNode","Length","bw","h","cover","Lpl","ult_curv","yield_curv"]
+
+        # Rotation and strain performance limits according to TBDY
+        #==================================================================================
+        PerfLimit = floorFrames.copy()
+        PerfLimit["H"] = ColumnProp["h"]
+        PerfLimit["Lpl"] = ColumnProp["Lpl"]
+        PerfLimit["H"][ColumnProp.last_valid_index():PerfLimit.last_valid_index()] = BeamProp["h"]
+        PerfLimit["Lpl"][ColumnProp.last_valid_index():PerfLimit.last_valid_index()] = BeamProp["Lpl"]
+
+        #PerfLimit.H.fillna(value= 0.5,inplace=True)
+        #PerfLimit.Lpl.fillna(value=Lpl,inplace=True)
+        limitsPerform = pd.DataFrame(columns=[  "ConcStrainGÖ",
+                                                "ConcStrainKH",
+                                                "ConcStrainSH",
+                                                "SteelStrainGÖ",
+                                                "SteelStrainKH",
+                                                "SteelStrainSH",
+                                                "RotationGÖ",
+                                                "RotationKH",
+                                                "RotationSH"],index=ops.getEleTags())
+        for eleid,eletype in zip(PerfLimit["EleId"],PerfLimit["EleType"]):
+
+            if eletype == "Column":
+                if ColumnProp["Location"][eleid] == "Exterior":
+                    colext_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=PerfLimit["Lpl"][eleid],Ls=2*PerfLimit["H"][eleid],db=14)
+                    
+                    limitsPerform.loc[eleid] = [
+                                                    round(important_points_ext['performance'][0][0],4),
+                                                    round(important_points_ext['performance'][1][0],4),
+                                                    round(important_points_ext['performance'][2][0],4),
+                                                    steelstrainlimits[0],
+                                                    steelstrainlimits[1],
+                                                    steelstrainlimits[2],
+                                                    round(colext_perf["GÖ"][0],4),
+                                                    round(colext_perf["KH"][0],4),
+                                                    round(colext_perf["SH"][0],4)
+                                               ]         
+                else:
+                    colint_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=PerfLimit["Lpl"][eleid],Ls=2*PerfLimit["H"][eleid],db=14)
+                    
+                    limitsPerform.loc[eleid] = [
+                                                    round(important_points_int['performance'][0][0],4),
+                                                    round(important_points_int['performance'][1][0],4),
+                                                    round(important_points_int['performance'][2][0],4),
+                                                    steelstrainlimits[0],
+                                                    steelstrainlimits[1],
+                                                    steelstrainlimits[2],
+                                                    round(colint_perf["GÖ"][0],4),
+                                                    round(colint_perf["KH"][0],4),
+                                                    round(colint_perf["SH"][0],4)
+                                                ]
+            
+            #beam only rotation
+            else:
+                beam_perf =self.Rotation_Perform_Level(ultimate_curvature=BeamProp["ult_curv"][eleid],yield_curvature=BeamProp["yield_curv"][eleid],Lp=BeamProp["Lpl"][eleid],Ls=2*BeamProp["Lpl"][eleid],db=14)
+                limitsPerform.loc[eleid] = [
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                0,
+                                                round(beam_perf["GÖ"][0],4),
+                                                round(beam_perf["KH"][0],4),
+                                                round(beam_perf["SH"][0],4)
+                                            ]
+            
+        PerfLimit = pd.concat([PerfLimit,limitsPerform],axis=1)
+
+        return PerfLimit
+
+    def MaxCoreFiberStrain(self,StressStrain : pd.DataFrame) -> pd.DataFrame:
+
+        # Fiber strain max values core con and steel materials
+        #==========================================================================================================
+        FiberStressStrainMax = StressStrain.copy()
+        FiberStressStrainMax.drop(columns=["TopCoverStress","TopCoverStrain","TopCoreStress","TopSteelStress","BotCoverStress","BotCoverStrain","BotCoreStress","BotSteelStress"], axis=1,inplace=True)
+        corestrain = [max(abs(top),abs(bot)) for top,bot in zip(FiberStressStrainMax["TopCoreStrain"],FiberStressStrainMax["BotCoreStrain"])]
+        steelstrain = [max(abs(top),abs(bot)) for top,bot in zip(FiberStressStrainMax["TopSteelStrain"],FiberStressStrainMax["BotSteelStrain"])]
+        FiberStressStrainMax["CoreStrainMax"]  = corestrain
+        FiberStressStrainMax["SteelStrainMax"] = steelstrain
+        FiberStressStrainMax.drop(columns=['TopCoreStrain', 'TopSteelStrain','BotCoreStrain', 'BotSteelStrain'], axis=1,inplace=True)
+        FiberStressStrainMax.columns = ["Eleid","CoreStrainMax","SteelStrainMax"]
+        #==========================================================================================================
+        for i in range(FiberStressStrainMax.last_valid_index()+1,max(ops.getEleTags())):
+            FiberStressStrainMax.loc[i] = [0,0,0]
+            
+        return FiberStressStrainMax
+
+    def FramePerformanceCheck(self,column_dict,floorFrames,Lpl,beam_H,important_points_ext,important_points_int,FiberStressStrain,MomentRotation) -> pd.DataFrame:
+        """All frame performance level calculate"""
         
         steelstrainlimits = self.Steelstrain_Perform_Level(eps_su=0.08)
 
@@ -405,12 +497,12 @@ class Performance:
             if eletype == "Column":
 
                 if PerfLimit["H"][eleid] == 0.3:
-                    colext_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=Lpl,Ls=2*0.3,db=16)
+                    colext_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=Lpl,Ls=2*0.3,db=14)
                     
                     limitsPerform.loc[eleid] = [round(important_points_ext['performance'][0][0],4),round(important_points_ext['performance'][1][0],4),round(important_points_ext['performance'][2][0],4),steelstrainlimits[0], steelstrainlimits[1],steelstrainlimits[2], round(colext_perf["GÖ"][0],4),round(colext_perf["KH"][0],4),round(colext_perf["SH"][0],4)]
                 
                 else:
-                    colint_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=Lpl,Ls=2*0.7,db=16)
+                    colint_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=Lpl,Ls=2*0.7,db=14)
                     
                     limitsPerform.loc[eleid] = [
                                                     round(important_points_int['performance'][0][0],4),
@@ -440,7 +532,6 @@ class Performance:
                                             ]
             
         PerfLimit = pd.concat([PerfLimit,limitsPerform],axis=1)
-        PerfLimit.head()
 
         # Fiber strain max values core con and steel materials
         #==========================================================================================================

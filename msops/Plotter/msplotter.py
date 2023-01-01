@@ -286,7 +286,6 @@ class plotter:
                 eps_c  : list of strain value for confined conc
                 f_c    : list of stress value for confined conc
                 points : Dictionary importants point from stress-strain graph
-                performance : [eps_CP,]
                 **kwargs : plot arguments for example label= "Confined Model"
         """
 
@@ -336,7 +335,7 @@ class plotter:
         ax.axhline(0, color='black', lw=2)
         ax.axvline(0, color='black', lw=2)
         ax.set(xlabel="Curvature", ylabel=f"Moment",title="Moment-Curvature Graph")
-        ax.legend(loc="upper left")
+        ax.legend()
         plt.show()
 
     def plot_internal_forces(sfacN=5.e-5, sfacV=5.e-5, sfacM=5.e-5):

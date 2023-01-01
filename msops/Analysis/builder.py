@@ -1,35 +1,27 @@
 import openseespy.opensees as ops
 import math
 from ..Units.Unit import Unit
+from msops.Plotter.msplotter import plotter as msp
+from msops.Codes.Tbdy import FundemantelParameters as fp
+from msops.Codes.Tbdy import Performance as prf
+
 import matplotlib.pyplot as plt
 import opsvis as opsv
 import numpy as np
 import logging
 from datetime import datetime
 import sys
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
 import pandas as pd
 from scipy.integrate import cumtrapz
-pd.reset_option('all')
 import warnings
 warnings.simplefilter(action='ignore', category=ResourceWarning)
+warnings.simplefilter(action='ignore', category=FutureWarning)
+pd.reset_option('all')
 
- 
 class opsbuild:
     _version_ = "0.4.0"
     def __init__(self) -> None:
         pass
-    # Define some local handy procs
-    def addMaterial(MaterialType,InputArray):
-        """
-            MaterialType: Openseespy material tag
-            InputArray  : Openseespy material input in array
-        """
-        global matTag
-        matTag += 1
-        ops.uniaxialMaterial(MaterialType,matTag,*InputArray)
-        return matTag
     
     def modelbuild(ndm=2,ndf=3):
         """
@@ -43,54 +35,6 @@ class opsbuild:
         # Create ModelBuilder (with two-dimensions and 3 DOF/node)
         # ------------------------------------------------------------------------
         ops.model('basic', '-ndm', ndm, '-ndf', ndf)
-    
-    def calcnodalmass(node_dict,column_dict,beam_dict,colLenDict,beamLenDict,Acol,Abeam,distLoadbeam,nodalLoadcol=0,concDensity=23.53):
-        """
-        Elemanların zati ağırlıklarını düğüm noktalarına dağıtıp sözlük olarak değerleri döndürür ve total kütleyi verir
-        Inputs :
-                node_dict   : Düğüm noktalarının bilgisinin tutulduğu sözlük
-                column_dict : Kolon düğüm noktalarının tutulduğu sözlük
-                beam_dict   : Kiriş düğüm noktalarının bilgisinin tutulduğu sözlük
-                colLenDict  : Kolon boylarının tutulduğu sözlük
-                beamLenDict : Kiriş boylarının tutulduğu sözlük
-                Acol        : Kolon alanı
-                Abeam       : Kiriş alanı
-                distLoadbeam: Kiriş üzerindeki yayılı yük modal analiz için
-                nodalLoadcol: Kolon üzerindeki tekil yük modal analiz için default 0 kN
-                concDensity : Beton yoğunluğu dedault 23.53 kN/m3
-
-        Outputs:
-                nodal_mass_dict
-        """
-        nodal_mass_dict ={}
-        totalWeight = 0
-
-        for node in node_dict.keys():
-            nodal_mass_dict[node] = 0
-            for colId in column_dict.keys():
-                if node in column_dict[colId]:
-                    wnode = round(concDensity*colLenDict[colId]*Acol/2,3)+ nodalLoadcol
-                    nodal_mass_dict[node] += wnode/Unit.g
-                    totalWeight += wnode
-            for beamId in beam_dict.keys():
-                if node in beam_dict[beamId]:
-                    wnode = round(concDensity*beamLenDict[beamId]*Abeam/2,3) + distLoadbeam/2
-                    nodal_mass_dict[node] += wnode/Unit.g
-                    totalWeight += wnode
-        print(f" total zati kütle  = {round(totalWeight,3)}")
-        return nodal_mass_dict
-    
-    def createnodes(node_dict,nodal_mass_dict=None):
-        """
-        node_dict       : Düğüm noktalarının sözlüğü
-        nodal_mass_dict : Düğüm noktalarının zati kütlesinin tutulduğu sözlük
-        Elemanların zati ağırlıkları düğüm noktalarına eşit olarak paylaştırılır.
-        """
-        for node in node_dict.keys():
-            if nodal_mass_dict is not None:
-                ops.node(node,node_dict[node][0],node_dict[node][1],'-mass',nodal_mass_dict[node], nodal_mass_dict[node], 0.0)
-            else:
-                ops.node(node,node_dict[node][0],node_dict[node][1])
 
     def rayleigh(numMode=2,xDamp = 0.05,betaKcurr = 0.0,betaKinit = 0.0):
         """
@@ -606,9 +550,6 @@ class opsbuild:
             Load -> List
             Curvature -> List
         """
-        y1 = HSec / 2
-        z1 = BSec / 2
-
 
         # Define two nodes at (0,0)
         ops.node(1, 0.0, 0.0)
@@ -670,7 +611,7 @@ class opsbuild:
             else:
                 print(f"analiz converge etmedi {step}/{numIncr}")
                 break
-        return LoadFactor,Curvature
+        return LoadFactor,Curvature,ok
 
     def modal_analys(numMode):
         """This function use only openseespy3.4.0.2"""
@@ -1234,8 +1175,8 @@ class opsbuild:
         print(Analysis)
         
         return mdrft
-   
-    def analysis_define(solver=0,Tol=1e-8,maxNumIter=300,pFlag=0,nType=2):
+    
+    def analysis_define(self,solver=0,Tol=1e-8,maxNumIter=300,pFlag=0,nType=2):
         """
             solver= default 0 other options:
                                             0:'BandGen',
@@ -1288,7 +1229,7 @@ class opsbuild:
         # AnalysisType -- defines what type of analysis is to be performed ('Static', 'Transient' etc.)
         ops.analysis('Transient')
 
-    def run_timehistory(columndict,DtAnalysis   =0.01,TmaxAnalysis=10,
+    def run_timehistory(self,columndict,DtAnalysis=0.01,TmaxAnalysis=10,
                         outEleForces = False,
                         outNodalDisp = True,
                         outFiber     = True,
@@ -1715,4 +1656,149 @@ class opsbuild:
         
         return M,K,C,Nmass,
         
+    def seismic_sequences_analysis(self,numFloor : int,TimeAnalysis : float , scalecoeff : list, Events : pd.DataFrame,columndictionary : dict,floorFrames : pd.DataFrame,Lpl : float,beam_H : int,important_points_ext:list,important_points_int:list,Folderspath:str,EarthquakeName:str):
+        #                                                                   MAIN SHOCK AFTER SHOCK ANALYSIS 
+        #===================================================================================================================================================================
+        IDloadTag = 400
+        tsTag = 3
+        for count,factor in enumerate(scalecoeff):
+            for index in range(0,len(Events.columns)-1):
+                
+                # Zaman serilerinin tanımlanması
+                #===============================================================================================================
+                GMdirection = 1
+                GMfact = factor 
+                GMfatt = Unit.g
+                if index % 2 == 0:
+                    if index == 0:
+                        ops.remove('loadPattern',tsTag)
+                        #ops.reset()
+                        print(f" ==> Opensees domainindeki time series silindi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+                    dt = Events[Events.columns[index]][1]-Events[Events.columns[index]][0]
+                    accel = Events[Events.columns[index+1]]
+                    ops.timeSeries('Path', tsTag, '-dt', dt, '-values', *accel,'-factor', GMfatt) 
+                    ops.pattern('UniformExcitation', IDloadTag, GMdirection, '-accel', tsTag,'-factor', GMfact)# pattern object
+                    print(f" ==> {index/2}. deprem için {factor} carpani uygulandi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+
+                    #Run time history analysis
+                    #===============================================================================================================
+                    Dt = Events["Time"][1]-Events["Time"][0]
+
+                    if TimeAnalysis <= 0:
+                        TmaxAnalysis =Events[Events.columns[index]][Events.last_valid_index()]
+                    else:
+                        TmaxAnalysis = TimeAnalysis
+                    
+                    ops.wipeAnalysis()
+                    self.analysis_define(solver=0, Tol=1e-8, maxNumIter=300, pFlag=0, nType=2)
+                    print(f" ==> analiz secenekleri tanimlandi ve analiz baslatildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+                    ElementForces,NodalDisplacement,MomentRotation,FiberStressStrain,Eds,times =    self.run_timehistory(columndictionary,DtAnalysis=Dt,TmaxAnalysis=TmaxAnalysis,                                                                                outEleForces = True,
+                    outNodalDisp = True,
+                    outFiber     = True,
+                    animotions   = False,
+                    outSection   = True)
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi bitti - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+                    msp.plot_TNodeTime(time=times,NodalDisplacement=NodalDisplacement, SaveFolder = f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\", FigName = f"Top_Disp-Time{int(index/2)}")
+
+                    #Save outputs csv files
+                    #===============================================================================================================
+                    
+                    ElementForces.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\ElementForcesEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    NodalDisplacement.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\NodalDisplacementsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    MomentRotation.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\MomentRotationsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    FiberStressStrain.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\FiberStressStrainsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi sonuçlari csv olarak kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+                    #Modal Analysis
+                    #===============================================================================================================
+
+                    T1, Mratios, Mfactors, Mtots = self.modal_analys2(numFloor)
+                    ops.loadConst('-time', 0.0)
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi sonrasi modal analiz yapildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+                    #Story Drift Check
+                    #===============================================================================================================
+
+                    Columndrift = fp.StoryDrift2(NodalDisplacement,columndictionary,floorFrames)
+                    Columndrift.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\ColumndriftsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi için kolon driftleri hesaplandi ve csv dosyalari kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+                    #Columndrift.query(f"Floor == {1}") # 1.kat sonuçları
+                    
+                    #Performance Check
+                    #===============================================================================================================
+
+                    performance = prf()
+                    FrameCheck = performance.FramePerformanceCheck(column_dict = columndictionary,floorFrames = floorFrames,Lpl=Lpl,beam_H=beam_H,important_points_ext=important_points_ext,important_points_int=important_points_int,FiberStressStrain=FiberStressStrain,MomentRotation=MomentRotation)
+                    FrameCheck.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\FrameChecksEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi Performans hesaplari yapildi ve csv dosyasi kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+
+                    #Energy Calculations
+                    #===============================================================================================================
+
+                    #Elemanların iki ucunda tüketilen enerji hesaplamaları
+                    SectionEnergy = pd.DataFrame(columns=["Eletags","iNode","jNode"])
+                    for ele in ops.getEleTags():
+                        tempdf = MomentRotation.query(f"Eletags == {ele} ")
+                        EH_i_total = cumtrapz(tempdf.iMoment, tempdf.iRotation)
+                        EH_j_total = cumtrapz(tempdf.jMoment, tempdf.jRotation)
+                        newj = []
+                        newi = []
+                        for i,j in zip(EH_i_total,EH_j_total):
+                            if i < 0 :
+                                i *= -1
+                                newi.append(i)
+                            else:
+                                newi.append(i)
+                            if j < 0 :
+                                j *= -1
+                                newj.append(j)
+                            else:
+                                newj.append(j)
+                        #EH_j_total = [-1*j for j in EH_j_total]
+                        EH_j_total = newj
+                        EH_i_total = newi
+                        del newj,newi
+                        energymember = pd.DataFrame({"Eletags": ele, "iNode": EH_i_total, "jNode": EH_j_total})
+                        SectionEnergy = pd.concat([SectionEnergy, energymember])
+
+                    #Elemanlarda tüketilen toplam enerjilerin hesaplanması
+                    #===============================================================================================================
+                    #pf.floorFrames[(pf.floorFrames.EleType == "Column")&(pf.floorFrames.Floor == 1)]
+                    ElementEnergy = SectionEnergy.copy()
+                    floor = [floorFrames.loc[ele]["Floor"] for ele in ElementEnergy.Eletags if ele == floorFrames.EleId[ele]]
+                    ElementEnergy["Floor"] = floor
+                    ElementEnergy["ElementEnergy"] = ElementEnergy["iNode"] + ElementEnergy["jNode"]
+                    ElementEnergy.drop(columns=['iNode', 'jNode'], axis=1,inplace=True)
+
+                    #Total olarak katlarda dağıtılan enerji
+                    #===============================================================================================================
+                    # for floor in pf.floorFrames.Floor.unique():
+                    #     print(ElementEnergy.query(f"Floor == {floor} ")["ElementEnergy"].sum())
+
+                    # Energy files save
+                    #===============================================================================================================
+                    SectionEnergy.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\SectionEnergysEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    ElementEnergy.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\ElementEnergysEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi enerji hesaplari yapildi ve csv dosyalari kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+
+                    # Strain-Stress plot and save fig
+                    #===============================================================================================================
+                    msp.plot_StressStrain(StressStrain=FiberStressStrain,FigName=f"StressStrain{index/2}",SaveFolder=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\StressStrainPlots")
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi stress-strain grafikleri kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+
+                    # Moment-Rotation plot and save fig
+                    #===============================================================================================================
+                    msp.plot_MomentRotation(MomentRotation,FigName=f"MomentRotation{index/2}",SaveFolder=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\MomentRotationPlots")
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi moment-rotation grafikleri kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}")
+
+                    # Section Energy plot and save fig
+                    #===============================================================================================================
+                    msp.plot_AllSection_Energy(SectionEnergy=SectionEnergy,FigName=f"SectionEnergy{index/2}",SaveFolder=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\EnergyPlots")
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi eleman i ve j uclarinin enerji grafikleri kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}")
+                    
+                    # Frame Energy plot and save fig
+                    #===============================================================================================================
+                    msp.plot_AllFrame_Energy(ElementEnergy=ElementEnergy,FigName=f"FrameEnergy{index/2}",SaveFolder=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\EnergyPlots")
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi elemanlarin enerji grafikleri kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}")
+
+                IDloadTag += 1
+                tsTag += 1
 

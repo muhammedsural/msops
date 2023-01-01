@@ -288,17 +288,29 @@ BeamMatTagFlex4 = 1336
 # damage2 = 0.  #damage due to energy: D2(Eii/Eult)
 # beta = 0.     #power used to determine the degraded unloading stiffness based on ductility, mu-beta (optional, default=0.0)
 
-inputs1 = [139.02, 0.003,  148.47,  0.004,  208.71,  0.09, 
-          -139.02,-0.003, -148.47, -0.004, -208.71, -0.09,
+# inputs1 = [139.02, 0.003,  148.47,  0.004,  208.71,  0.09, 
+#           -139.02,-0.003, -148.47, -0.004, -208.71, -0.09,
+#            1.0, 1.0, 0.0, 0.0, 0.0]
+# inputs2 = [141.24, 0.003,  149.11,  0.004,  208.74,  0.089, 
+#           -141.24,-0.003, -149.11, -0.004, -208.74, -0.089,
+#            1.0, 1.0, 0.0, 0.0, 0.0]
+# inputs3 = [108.35, 0.003, 112.22, 0.004, 157.62, 0.09, 
+#           -108.35, -0.003, -112.22, -0.004, -157.62, -0.09,
+#            1.0, 1.0, 0.0, 0.0, 0.0]
+# inputs4 = [108.35, 0.003, 112.22, 0.004, 157.62, 0.09, 
+#           -108.35, -0.003, -112.22, -0.004, -157.62, -0.09,
+#            1.0, 1.0, 0.0, 0.0, 0.0]
+inputs1 = [96.94, 0.0000110,  118.673,  0.0000309,  120.427,  0.000199, 
+          -96.94, -0.0000110,  -118.673,  -0.0000309,  -120.427,  -0.000199,
            1.0, 1.0, 0.0, 0.0, 0.0]
-inputs2 = [141.24, 0.003,  149.11,  0.004,  208.74,  0.089, 
-          -141.24,-0.003, -149.11, -0.004, -208.74, -0.089,
+inputs2 = [96.94, 0.0000110,  118.715,  0.0000309,  121.261,  0.000199, 
+          -96.94,-0.0000110, -118.715, -0.0000309, -121.261, -0.000199,
            1.0, 1.0, 0.0, 0.0, 0.0]
-inputs3 = [108.35, 0.003, 112.22, 0.004, 157.62, 0.09, 
-          -108.35, -0.003, -112.22, -0.004, -157.62, -0.09,
+inputs3 = [96.94, 0.0000110,  118.673,  0.0000309,  120.427,  0.000199, 
+          -96.94,-0.0000110, -118.673, -0.0000309, -120.427, -0.000199,
            1.0, 1.0, 0.0, 0.0, 0.0]
-inputs4 = [108.35, 0.003, 112.22, 0.004, 157.62, 0.09, 
-          -108.35, -0.003, -112.22, -0.004, -157.62, -0.09,
+inputs4 = [78.894, 0.0000110,  90.045,  0.0000309,  89.40,  0.000199, 
+          -78.894,-0.0000110, -90.045, -0.0000309, -89.40, -0.000199,
            1.0, 1.0, 0.0, 0.0, 0.0]
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -491,7 +503,7 @@ print(f" ==> Rayleigh damping tanimlandi - {datetime.now().hour} : {datetime.now
 
 #                                                                   CREATE TIME-SERIES
 #===================================================================================================================================================================
-EarthquakeName = "Whittier_Narrows" 
+EarthquakeName = "Chalfant_Valley" 
 eventname = f"C:\\Users\\muham\\Masaüstü\\github\\msops\\msops\\Test\\Earthquakes\\{EarthquakeName}"
 # verilen deprem kayıtlarının bulunduğu klasördeki .AT2 uzantılı dosyaların listelenmesi
 eventlist = [i for i in os.listdir(f"{eventname}") if i.endswith('.AT2')]
@@ -512,7 +524,7 @@ startNanIndex = Events.last_valid_index()-nanindex
 Events.Time1[startNanIndex:Events.last_valid_index()].fillna(value=Events.Time[startNanIndex:Events.last_valid_index()+1],inplace=True)
 Events.drop([Events.last_valid_index()],axis = 0,inplace=True)
 Events.fillna(value=0.0,inplace=True)
-
+print(Events.tail())
 print(f" ==> Deprem kayitlari alindi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
 
 #                                                       DESIGN AND ELASTIC COEFFICIENT FOR TIME SERIES
@@ -534,7 +546,7 @@ print(f" ==> Zaman serisinin spektrumu hesaplandi - {datetime.now().hour} : {dat
 fig, ax = fig , ax = plt.subplots( 1,len(filePath) , sharex = True , sharey = True  , figsize=(20,5) )
 ax[0].plot(Events.Time,Events.Acceleration)
 ax[1].plot(Events.Time1,Events.Acceleration1)
-
+plt.show()
 
 scalecoeff = [i/Sa_series for i in coeff]
 print(f" ==> Scale faktorler bulundu - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
