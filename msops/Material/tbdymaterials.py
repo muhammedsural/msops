@@ -17,14 +17,15 @@ def tbdy_mander(
         bw                  : Kesitin genişliği [mm]
         h                   : Kesitin yüksekliği
         s                   : Etriye aralığı
-        A_s                 : Boyuna donatı alanı
         etriye_çapı         : Etriye donatı çapı (mm)
         boyuna_donatı_çapı  : Boyuna donatı çapı (mm)
         pas_payı            : Beton pas payı (mm)
-        baslık_donatı_adeti : Kesit başlık bölgesindeki donatı sayısı 2 başlıkta bulunan toplam adet
+        numBarsTop           : Kesit üst başlık bölgesindeki donatı sayısı 
+        numBarsBot           : Kesit alt başlık bölgesindeki donatı sayısı 
         gövde_donatı_adeti  : Kesit gövde bölgesindeki donatı sayısı 2 tarafta bulunan toplam adet
         x_koladeti          : x eksenini kesen sargı kol adeti
         y_koladeti          : y eksenini kesen sargı kol adeti
+        plot                : mander çizimi yapilmasi isteniyorsa True seçilmeli default True dur.
 
 
     OUTPUT:
@@ -129,7 +130,7 @@ def tbdy_mander(
 
     #check kol adetleri
     x_kol_max = max(numBarsBot,numBarsTop)
-    y_kol_max = gövde_donatı_adeti+2 #Çift sıra başlık donatısı göz ardı edilmiştir.
+    y_kol_max = gövde_donatı_adeti/2 + 2 #Çift sıra başlık donatısı göz ardı edilmiştir.
 
     if x_koladeti > x_kol_max:
         x_koladeti = x_kol_max
