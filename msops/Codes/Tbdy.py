@@ -3,6 +3,7 @@ import math as mt
 import openseespy.opensees as ops
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy.integrate import cumtrapz
 from statistics import median
 import matplotlib.pyplot as plt
 
@@ -99,9 +100,19 @@ class FundemantelParameters:
         del tempix,tempiy,tempjx,tempjy,DeltaX,DeltaY,ColumnProp
 
         return ColumnDrift
+
+class ShapeError(Exception):
+    """Custom error that is raised when not enough vacation days are available."""
+
+    def __init__(self, future_index: int, target_index: int, message: str) -> None:
+        self.requested_days = future_index
+        self.remaining_days = target_index
+        self.message = message
+        super().__init__(message)
+
 class Performance:
         
-    def Steelstrain_Perform_Level(self,eps_su):
+    def Steelstrain_Perform_Level(self,eps_su : float):
         """
         INPUT
             eps_su : Ultimate strain value 
@@ -114,7 +125,7 @@ class Performance:
         eps_perf = [eps_sgö,eps_skh,eps_ssh]
         return eps_perf
 
-    def Concstrain_Perform_Level(self,h,bw,s,f_sy,f_co,pas_payı,etriye_çapı,boyuna_donatı_çapı,numBarsTop,numBarsBot,gövde_donatı_adeti,x_koladeti,y_koladeti):
+    def Concstrain_Perform_Level(self,h : float,bw : float,s : float ,f_sy : float,f_co : float,pas_payı : float,etriye_çapı : float,boyuna_donatı_çapı : float,numBarsTop : int,numBarsBot : int,gövde_donatı_adeti : int,x_koladeti : int,y_koladeti : int):
 
         """
         INPUT:
@@ -195,7 +206,7 @@ class Performance:
         perform_Level = [eps_cgö,eps_ckh,eps_csh]
         return perform_Level
 
-    def Rotation_Perform_Level(self,ultimate_curvature,yield_curvature,Lp,Ls,db) -> pd.DataFrame:
+    def Rotation_Perform_Level(self,ultimate_curvature : float, yield_curvature : float, Lp : float, Ls : float, db : float) -> pd.DataFrame:
         """
         INPUT
             ultimate_curvature  : Kesitin maksimum eğrilik değeri. Kesitin moment-curvature eğrisinin idealleştirilmesinden tespit edilebilir.
@@ -217,159 +228,6 @@ class Performance:
         rotation_performs_limits = pd.DataFrame(rotation_performs).T
         rotation_performs_limits.columns = ["GÖ","KH","SH"]
         return rotation_performs_limits
-    
-    """def Frame_Performance_Check(self,steelStrainLevel,concStrainLevel,rotationLevel):
-         
-            BİRİM ŞEKİLDEĞİŞTİRMELER İÇİN 
-                                0 => Göçme  ;
-                                1 => Göçmenin önlenmesi ;
-                                2 => Kontrollü hasar ;
-                                3 => Sınırlı hasar
-            DÖNMELER İÇİN 
-                                0 => Göçme  ;
-                                1 => Göçmenin önlenmesi ;
-                                2 => Kontrollü hasar ;
-                                3 => Sınırlı hasar
-            KESİT İÇİN 
-                        0 => Göçme Bölgesi
-                        1 => İleri Hasar bölgesi
-                        2 => Belirgin hasar bölgesi
-                        3 => Sınırlı hasar bölgesi
-        
-        
-        performance = pd.DataFrame(columns=["TopCoverConcPerform","TopSteelPerform","TopCoreConcPerform",
-                                    "BotCoreConcPerform","BotCoverConcPerform","BotSteelPerform",
-                                    "iRotationPerform","jRotationPerform","SectionPerform"],index=[i for i in range(1,len(ops.getEleTags())+1)])
-
-        Col1exterior_rotation_perform =mam.rotation_Perform_Level(ultimate_curvature=0.01,yield_curvature=0.002,Lp=Lpl1,Ls=Lpl1,db=bardiameterexteriorcol)
-        print(Col1exterior_rotation_perform)
-
-
-        for ele in ops.getEleTags():
-            # Top cover conc performance only one fiber from given location 
-            for strain in sectionStrainStress["top_cover"][ele]["strain"]:
-                if strain > Col1exterior_conc_Performs_Level[0]:
-                    #print("Göçme")
-                    performance["TopCoverConcPerform"][ele]=["Collapse"]
-                if strain < Col1exterior_conc_Performs_Level[0] and strain > Col1exterior_conc_Performs_Level[1]:
-                    performance["TopCoverConcPerform"][ele]=["Before Collapse"]
-                    
-                    #print("Göçmenin önlenmesi")
-                if strain < Col1exterior_conc_Performs_Level[1] and strain > Col1exterior_conc_Performs_Level[2]:
-                    performance["TopCoverConcPerform"][ele]=["Kontrollü hasar"]
-                    
-                    #print("Kontrollü hasar")
-                if strain < Col1exterior_conc_Performs_Level[2]:
-                    performance["TopCoverConcPerform"][ele]=["Sınırlı hasar"]
-            
-            # Top steel performance
-            for strain in sectionStrainStress["steel_top"][ele]["strain"]:
-                if strain > Col1_TopSteel_performs[0]:
-                    #print("Göçme")
-                    performance["TopSteelPerform"][ele]=["Collapse"]
-                if strain < Col1_TopSteel_performs[0] and strain > Col1_TopSteel_performs[1]:
-                    performance["TopSteelPerform"][ele]=["Before Collapse"]
-                    
-                    #print("Göçmenin önlenmesi")
-                if strain < Col1_TopSteel_performs[1] and strain > Col1_TopSteel_performs[2]:
-                    performance["TopSteelPerform"][ele]=["Kontrollü hasar"]
-                    
-                    #print("Kontrollü hasar")
-                if strain < Col1_TopSteel_performs[2]:
-                    performance["TopSteelPerform"][ele]=["Sınırlı hasar"]
-            
-            # Top cover conc performance only one fiber from given location 
-            for strain in sectionStrainStress["top_core"][ele]["strain"]:
-                if strain > Col1exterior_conc_Performs_Level[0]:
-                    #print("Göçme")
-                    performance["TopCoreConcPerform"][ele]=["Collapse"]
-                if strain < Col1exterior_conc_Performs_Level[0] and strain > Col1exterior_conc_Performs_Level[1]:
-                    performance["TopCoreConcPerform"][ele]=["Before Collapse"]
-                    
-                    #print("Göçmenin önlenmesi")
-                if strain < Col1exterior_conc_Performs_Level[1] and strain > Col1exterior_conc_Performs_Level[2]:
-                    performance["TopCoreConcPerform"][ele]=["Kontrollü hasar"]
-                    
-                    #print("Kontrollü hasar")
-                if strain < Col1exterior_conc_Performs_Level[2]:
-                    performance["TopCoreConcPerform"][ele]=["Sınırlı hasar"]
-            
-            # Top steel performance
-            for strain in sectionStrainStress["bot_core"][ele]["strain"]:
-                if strain > Col1_TopSteel_performs[0]:
-                    #print("Göçme")
-                    performance["BotCoreConcPerform"][ele]=["Collapse"]
-                if strain < Col1_TopSteel_performs[0] and strain > Col1_TopSteel_performs[1]:
-                    performance["BotCoreConcPerform"][ele]=["Before Collapse"]
-                    
-                    #print("Göçmenin önlenmesi")
-                if strain < Col1_TopSteel_performs[1] and strain > Col1_TopSteel_performs[2]:
-                    performance["BotCoreConcPerform"][ele]=["Kontrollü hasar"]
-                    
-                    #print("Kontrollü hasar")
-                if strain < Col1_TopSteel_performs[2]:
-                    performance["BotCoreConcPerform"][ele]=["Sınırlı hasar"]
-            
-            # Top cover conc performance only one fiber from given location 
-            for strain in sectionStrainStress["bot_cover"][ele]["strain"]:
-                if strain > Col1exterior_conc_Performs_Level[0]:
-                    #print("Göçme")
-                    performance["BotCoverConcPerform"][ele]=["Collapse"]
-                if strain < Col1exterior_conc_Performs_Level[0] and strain > Col1exterior_conc_Performs_Level[1]:
-                    performance["BotCoverConcPerform"][ele]=["Before Collapse"]
-                    
-                    #print("Göçmenin önlenmesi")
-                if strain < Col1exterior_conc_Performs_Level[1] and strain > Col1exterior_conc_Performs_Level[2]:
-                    performance["BotCoverConcPerform"][ele]=["Kontrollü hasar"]
-                    
-                    #print("Kontrollü hasar")
-                if strain < Col1exterior_conc_Performs_Level[2]:
-                    performance["BotCoverConcPerform"][ele]=["Sınırlı hasar"]
-            
-            # Top steel performance
-            for strain in sectionStrainStress["steel_bot"][ele]["strain"]:
-                if strain > Col1_TopSteel_performs[0]:
-                    #print("Göçme")
-                    performance["BotSteelPerform"][ele]=["Collapse"]
-                if strain < Col1_TopSteel_performs[0] and strain > Col1_TopSteel_performs[1]:
-                    performance["BotSteelPerform"][ele]=["Before Collapse"]
-                    
-                    #print("Göçmenin önlenmesi")
-                if strain < Col1_TopSteel_performs[1] and strain > Col1_TopSteel_performs[2]:
-                    performance["BotSteelPerform"][ele]=["Kontrollü hasar"]
-                    
-                    #print("Kontrollü hasar")
-                if strain < Col1_TopSteel_performs[2]:
-                    performance["BotSteelPerform"][ele]=["Sınırlı hasar"]
-                    
-            for rotationi,rotationj in zip(sectionOutput["itotalRot"][ele],sectionOutput["jtotalRot"][ele]):
-                if rotationi > Col1exterior_rotation_perform[0]:
-                    #print("Göçme")
-                    performance["iRotationPerform"][ele]=["Collapse"]
-                if rotationi < Col1exterior_rotation_perform[0] and rotationi > Col1exterior_rotation_perform[1]:
-                    performance["iRotationPerform"][ele]=["Before Collapse"]
-                    #print("Göçmenin önlenmesi")
-                if rotationi < Col1exterior_rotation_perform[1] and rotationi > Col1exterior_rotation_perform[2]:
-                    performance["iRotationPerform"][ele]=["Life Safety"]
-                    #print("Kontrollü hasar")
-                if rotationi < Col1exterior_rotation_perform[2]:
-                    performance["iRotationPerform"][ele]=["Immediate Occupuancy"]
-                    
-                if rotationj > Col1exterior_rotation_perform[0]:
-                    #print("Göçme")
-                    performance["jRotationPerform"][ele]=["Collapse"]
-                if rotationj < Col1exterior_rotation_perform[0] and rotationj > Col1exterior_rotation_perform[1]:
-                    performance["jRotationPerform"][ele]=["Before Collapse"]
-                    #print("Göçmenin önlenmesi")
-                if rotationj < Col1exterior_rotation_perform[1] and rotationj > Col1exterior_rotation_perform[2]:
-                    performance["jRotationPerform"][ele]=["Life Safety"]
-                    #print("Kontrollü hasar")
-                if rotationj < Col1exterior_rotation_perform[2]:
-                    performance["jRotationPerform"][ele]=["Immediate Occupuancy"]
-                    #print("Sınırlı hasar")
-
-        pass"""
-
 
     def FramePerformanceBoundries(self,column_dict : dict,beam_dict : dict ,floorFrames : pd.DataFrame,important_points_ext : dict,important_points_int : dict) -> pd.DataFrame:
         """Calculate rotation and strain performance limits for all frame elements"""
@@ -451,98 +309,117 @@ class Performance:
         return PerfLimit
 
     def MaxCoreFiberStrain(self,StressStrain : pd.DataFrame) -> pd.DataFrame:
+        """
+        Çekirdek betondaki maksimum şekildeğiştirmeler ve donatilardaki maksimum şekildeğiştirmeleri hesaplar
+
+            INPUT
+                StressStrain : Gerilme-şekildeğiştirme değerlerinin bulunduğu Dataframe
+            RESULT
+                FiberStrainMax : Donati ve çekirdek betondaki maksimum gerilmelerin bulunduğu Dataframe
+        """
 
         # Fiber strain max values core con and steel materials
         #==========================================================================================================
-        FiberStressStrainMax = StressStrain.copy()
-        FiberStressStrainMax.drop(columns=["TopCoverStress","TopCoverStrain","TopCoreStress","TopSteelStress","BotCoverStress","BotCoverStrain","BotCoreStress","BotSteelStress"], axis=1,inplace=True)
-        corestrain = [max(abs(top),abs(bot)) for top,bot in zip(FiberStressStrainMax["TopCoreStrain"],FiberStressStrainMax["BotCoreStrain"])]
-        steelstrain = [max(abs(top),abs(bot)) for top,bot in zip(FiberStressStrainMax["TopSteelStrain"],FiberStressStrainMax["BotSteelStrain"])]
-        FiberStressStrainMax["CoreStrainMax"]  = corestrain
-        FiberStressStrainMax["SteelStrainMax"] = steelstrain
-        FiberStressStrainMax.drop(columns=['TopCoreStrain', 'TopSteelStrain','BotCoreStrain', 'BotSteelStrain'], axis=1,inplace=True)
-        FiberStressStrainMax.columns = ["Eleid","CoreStrainMax","SteelStrainMax"]
-        #==========================================================================================================
-        for i in range(FiberStressStrainMax.last_valid_index()+1,max(ops.getEleTags())):
-            FiberStressStrainMax.loc[i] = [0,0,0]
-            
-        return FiberStressStrainMax
+        FiberStrainMax = StressStrain.copy()
+        FiberStrainMax.drop(columns=["TopCoverStress","TopCoverStrain","TopCoreStress","TopSteelStress","BotCoverStress","BotCoverStrain","BotCoreStress","BotSteelStress"], axis=1,inplace=True)
+        corestrain = [max(abs(top),abs(bot)) for top,bot in zip(FiberStrainMax["TopCoreStrain"],FiberStrainMax["BotCoreStrain"])]
+        steelstrain = [max(abs(top),abs(bot)) for top,bot in zip(FiberStrainMax["TopSteelStrain"],FiberStrainMax["BotSteelStrain"])]
+        FiberStrainMax["CoreStrainMax"]  = corestrain
+        FiberStrainMax["SteelStrainMax"] = steelstrain
+        FiberStrainMax.drop(columns=['TopCoreStrain', 'TopSteelStrain','BotCoreStrain', 'BotSteelStrain'], axis=1,inplace=True)
+        FiberStrainMax.columns = ["Eleid","CoreStrainMax","SteelStrainMax"]
+        return FiberStrainMax
 
-    def FramePerformanceCheck(self,column_dict,floorFrames,Lpl,beam_H,important_points_ext,important_points_int,FiberStressStrain,MomentRotation) -> pd.DataFrame:
+    def FrameRotationPerformanceCheck(self,MomentRotation : pd.DataFrame,performance_limits : pd.DataFrame) -> pd.DataFrame:
+        """Frame rotation performance check 0 -> Sınırlı Hasar; 1 -> Belirgi Hasar; 2 -> İleri Hasar; 3 -> Göçme Durumu; """
+        RotationPerform = MomentRotation.copy()
+        RotationPerform.drop(columns=['iMoment', 'jMoment'], axis=1,inplace=True)
+
+        iRotationPerformance,jRotationPerformance = [],[]
+        for eleid,(irot,jrot) in zip(RotationPerform["Eletags"],zip(RotationPerform["iRotation"],RotationPerform["jRotation"])):
+            gö_rotation = performance_limits["RotationGÖ"][eleid]
+            kh_rotation = performance_limits["RotationGÖ"][eleid]
+            sh_rotation = performance_limits["RotationGÖ"][eleid]
+
+            if irot > gö_rotation:
+                iRotationPerformance.append(3)
+            elif irot < gö_rotation and irot >= kh_rotation:
+                iRotationPerformance.append(2)
+            elif irot < kh_rotation and irot >= sh_rotation:
+                iRotationPerformance.append(1)
+            elif irot < sh_rotation:
+                iRotationPerformance.append(0)
+            
+            if jrot > gö_rotation:
+                jRotationPerformance.append(3)
+            elif jrot < gö_rotation and jrot >= kh_rotation:
+                jRotationPerformance.append(2)
+            elif jrot < kh_rotation and jrot >= sh_rotation:
+                jRotationPerformance.append(1)
+            elif jrot < sh_rotation:
+                jRotationPerformance.append(0)
+
+        RotationPerform["iRotPerformLevel"] = iRotationPerformance
+        RotationPerform["jRotPerformLevel"] = jRotationPerformance
+        #FramePerfmCheck.drop(columns=['Eleid'], axis=1,inplace=True)
+        return RotationPerform
+
+    def FrameStrainPerformanceCheck(self,CoreFiberStressStrainMax : pd.DataFrame, performance_limits : pd.DataFrame) -> pd.DataFrame:
+        """Strain performance check for all Frame. 0 -> Sınırlı Hasar ; 1 -> Belirgi Hasar ; 2 -> İleri Hasar ; 3 -> Göçme Durumu ; 4 -> Not Fiber"""
+
+        core_strainlevel = []
+        steel_strainslevel = []
+        Strainperformance = CoreFiberStressStrainMax.copy()
+        for eleid,(core_strain,steel_strains) in zip(CoreFiberStressStrainMax["Eleid"],zip(CoreFiberStressStrainMax["CoreStrainMax"],CoreFiberStressStrainMax["SteelStrainMax"])):
+            gö_concstrain = performance_limits["ConcStrainGÖ"][eleid]
+            kh_concstrain = performance_limits["ConcStrainKH"][eleid]
+            sh_concstrain = performance_limits["ConcStrainSH"][eleid]
+
+            gö_steelstrain = performance_limits["SteelStrainGÖ"][eleid]
+            kh_steelstrain = performance_limits["SteelStrainKH"][eleid]
+            sh_steelstrain = performance_limits["SteelStrainSH"][eleid]
+
+            if core_strain > gö_concstrain:
+                core_strainlevel.append(3)
+            if core_strain < kh_concstrain and core_strain >= gö_concstrain:
+                core_strainlevel.append(2)
+            if core_strain < sh_concstrain and core_strain >= kh_concstrain:
+                core_strainlevel.append(1)
+            if core_strain < sh_concstrain:
+                core_strainlevel.append(0)
+            if core_strain == 0:
+                core_strainlevel.append(4)
+            
+            if steel_strains > gö_steelstrain:
+                steel_strainslevel.append(3)
+            if steel_strains < kh_steelstrain and steel_strains >= gö_steelstrain:
+                steel_strainslevel.append(2)
+            if steel_strains < sh_steelstrain and steel_strains >= kh_steelstrain:
+                steel_strainslevel.append(1)
+            if steel_strains < sh_steelstrain:
+                steel_strainslevel.append(0)
+            if steel_strains == 0:
+                steel_strainslevel.append(4)
+        
+        if Strainperformance.last_valid_index() != len(core_strainlevel):
+            raise ShapeError(
+                future_index=Strainperformance.last_valid_index(),
+                target_index=len(core_strainlevel),
+                message=f"Strainlerin tutulduğu Dataframe ile performans listesinin boyutlari ayni olmadiği için Dataframe içerisine performans listesi eklenemiyor!!! => {Strainperformance.last_valid_index()} != {len(core_strainlevel)}",
+            )         
+        Strainperformance["ConcretePerformLevel"] = core_strainlevel
+        Strainperformance["SteelPerformLevel"] = steel_strainslevel
+        return Strainperformance
+
+    def FramePerformanceCheck(self,column_dict : dict, beam_dict : dict, floorFrames : pd.DataFrame, important_points_ext :dict,important_points_int : dict,FiberStressStrain : pd.DataFrame, MomentRotation : pd.DataFrame) -> pd.DataFrame:
         """All frame performance level calculate"""
         
-        steelstrainlimits = self.Steelstrain_Perform_Level(eps_su=0.08)
-
-        ColumnProp = pd.DataFrame(column_dict).T
-        ColumnProp.columns = ["iNode","jNode","Length","bw","h","cover","matcovtag","matcoretag","matsteeltag","Lpl"]
-
-        # Rotation and strain performance limits according to TBDY
-        #==================================================================================
-        PerfLimit = floorFrames.copy()
-        PerfLimit["H"] = ColumnProp["h"]
-        PerfLimit["Lpl"] = ColumnProp["Lpl"]
-        PerfLimit.H.fillna(value= 0.5,inplace=True)
-        PerfLimit.Lpl.fillna(value=Lpl,inplace=True)
-        limitsPerform = pd.DataFrame(columns=["ConcStrainGÖ",
-                                                "ConcStrainKH",
-                                                "ConcStrainSH",
-                                                "SteelStrainGÖ",
-                                                "SteelStrainKH",
-                                                "SteelStrainSH",
-                                                "RotationGÖ",
-                                                "RotationKH",
-                                                "RotationSH"],index=ops.getEleTags())
-        for eleid,eletype in zip(PerfLimit["EleId"],PerfLimit["EleType"]):
-
-            if eletype == "Column":
-
-                if PerfLimit["H"][eleid] == 0.3:
-                    colext_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=Lpl,Ls=2*0.3,db=14)
-                    
-                    limitsPerform.loc[eleid] = [round(important_points_ext['performance'][0][0],4),round(important_points_ext['performance'][1][0],4),round(important_points_ext['performance'][2][0],4),steelstrainlimits[0], steelstrainlimits[1],steelstrainlimits[2], round(colext_perf["GÖ"][0],4),round(colext_perf["KH"][0],4),round(colext_perf["SH"][0],4)]
-                
-                else:
-                    colint_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=Lpl,Ls=2*0.7,db=14)
-                    
-                    limitsPerform.loc[eleid] = [
-                                                    round(important_points_int['performance'][0][0],4),
-                                                    round(important_points_int['performance'][1][0],4),
-                                                    round(important_points_int['performance'][2][0],4),
-                                                    steelstrainlimits[0],
-                                                    steelstrainlimits[1],
-                                                    steelstrainlimits[2],
-                                                    round(colint_perf["GÖ"][0],4),
-                                                    round(colint_perf["KH"][0],4),
-                                                    round(colint_perf["SH"][0],4)
-                                                ]
-            #beam only rotation
-            else:
-                
-                beam_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=Lpl,Ls=2*beam_H,db=16)
-                limitsPerform.loc[eleid] = [
-                                                0,
-                                                0,
-                                                0,
-                                                0,
-                                                0,
-                                                0,
-                                                round(beam_perf["GÖ"][0],4),
-                                                round(beam_perf["KH"][0],4),
-                                                round(beam_perf["SH"][0],4)
-                                            ]
+        PerfLimit = self.FramePerformanceBoundries(column_dict=column_dict,beam_dict=beam_dict,floorFrames=floorFrames,important_points_ext=important_points_ext,important_points_int=important_points_int)
             
-        PerfLimit = pd.concat([PerfLimit,limitsPerform],axis=1)
-
         # Fiber strain max values core con and steel materials
         #==========================================================================================================
-        FiberStressStrainMax = FiberStressStrain.copy()
-        FiberStressStrainMax.drop(columns=["TopCoverStress","TopCoverStrain","TopCoreStress","TopSteelStress","BotCoverStress","BotCoverStrain","BotCoreStress","BotSteelStress"], axis=1,inplace=True)
-        corestrain = [max(abs(top),abs(bot)) for top,bot in zip(FiberStressStrainMax["TopCoreStrain"],FiberStressStrainMax["BotCoreStrain"])]
-        steelstrain = [max(abs(top),abs(bot)) for top,bot in zip(FiberStressStrainMax["TopSteelStrain"],FiberStressStrainMax["BotSteelStrain"])]
-        FiberStressStrainMax["CoreStrainMax"]  = corestrain
-        FiberStressStrainMax["SteelStrainMax"] = steelstrain
-        FiberStressStrainMax.drop(columns=['TopCoreStrain', 'TopSteelStrain','BotCoreStrain', 'BotSteelStrain'], axis=1,inplace=True)
-        FiberStressStrainMax.columns = ["Eleid","CoreStrainMax","SteelStrainMax"]
+        FiberStressStrainMax = self.MaxCoreFiberStrain(StressStrain=FiberStressStrain)     
+
         #==========================================================================================================
         FramePerfmCheck = MomentRotation.copy()
         FramePerfmCheck.drop(columns=['iMoment', 'jMoment'], axis=1,inplace=True)
@@ -620,6 +497,65 @@ class Performance:
         FramePerfmCheck.drop(columns=['Eleid'], axis=1,inplace=True)
         print(" 0 -> Sınırlı Hasar; 1 -> Belirgi Hasar; 2 -> İleri Hasar; 3 -> Göçme Durumu; 4 -> Not Fiber")
         return FramePerfmCheck
+
+    def SectionEnergyCalcs(self,FrameMomentRotation : pd.DataFrame) -> pd.DataFrame:
+        """Elemanlarin iki ucunda tüketilen enerji hesaplamaları
+            INPUT
+                FrameMomentRotation : Çubuk elemanlarin Moment-Rotation değerlerinin bulunduğu Dataframe
+            RESULT
+                SectionEnergy : Çubuk elemanlarin iki ucundaki entegrasyon noktalarında harcanan enerjilerin bulunduğu Dataframe
+            INFO
+                Çubuk elemanlarin her iki ucuda zamana bağlı oluşan moment-rotation kapalı eğrisinin alani integrasyon yardimi ile kümülatif olarak bulunmuştur.
+        """
+        SectionEnergy = pd.DataFrame(columns=["Eletags","iNode","jNode"])
+        for ele in ops.getEleTags():
+            tempdf = FrameMomentRotation.query(f"Eletags == {ele} ")
+            EH_i_total = cumtrapz(tempdf.iMoment, tempdf.iRotation)
+            EH_j_total = cumtrapz(tempdf.jMoment, tempdf.jRotation)
+            newj = [abs(i) for i in EH_i_total]
+            newi = [abs(j) for j in EH_j_total]
+            EH_j_total = newj
+            EH_i_total = newi
+            del newj,newi
+            energymember = pd.DataFrame({"Eletags": ele, "iNode": EH_i_total, "jNode": EH_j_total})
+            SectionEnergy = pd.concat([SectionEnergy, energymember])
+        
+        return SectionEnergy
+    
+    def FrameEnergyCalcs(self,SectionEnergy : pd.DataFrame,FloorFrames : pd.DataFrame) -> pd.DataFrame:
+        """
+        Elemanlarin iki ucunda tüketilen enerji hesaplamalari
+            INPUT
+                SectionEnergy : Çubuk elemanlarin iki ucundaki entegrasyon noktalarinda harcanan enerjilerin bulunduğu Dataframe
+                FloorFrames   : Kattaki eleman bilgilerinin bulunduğu Dataframe
+            RESULT
+                FrameEnergy   : Çubuk elemanlarin iki ucundaki entegrasyon noktalarinda harcanan enerjilerin toplanarak bulunduğu Dataframe
+            INFO
+                Çubuk elemanlarin her iki ucuda zamana bağli hesaplanan enerji değerlerinin toplanmasi ile bulunmuştur.
+        """
+        ElementEnergy = SectionEnergy.copy()
+        floor = [FloorFrames.loc[ele]["Floor"] for ele in ElementEnergy.Eletags if ele == FloorFrames.EleId[ele]]
+        ElementEnergy["Floor"] = floor
+        ElementEnergy["ElementEnergy"] = ElementEnergy["iNode"] + ElementEnergy["jNode"]
+        ElementEnergy.drop(columns=['iNode', 'jNode'], axis=1,inplace=True)
+
+        return ElementEnergy
+
+    def FloorEnergyCalcs(self,FrameEnergy: pd.DataFrame,FloorFrames : pd.DataFrame) -> pd.DataFrame:
+        """
+        Katlarda tüketilen enerji hesaplamalari
+            INPUT
+                FrameEnergy       : Çubuk elemanlarin iki ucundaki entegrasyon noktalarinda harcanan enerjilerin toplanarak bulunduğu Dataframe
+                FloorFrames   : Kattaki eleman bilgilerinin bulunduğu Dataframe
+            RESULT
+                FloorEnergyDiss   : Katlarda bulunan çubuk elemanlarda harcanan enerjilerin toplanarak bulunduğu Dataframe
+        """
+        floorenergy = {floor : [] for floor in FloorFrames.Floor.unique()}
+        for floor in FloorFrames.Floor.unique():
+            FloorEnergy = FrameEnergy.query(f"Floor == {floor} ")["ElementEnergy"].sum()
+            floorenergy[floor].append(FloorEnergy) 
+        FloorEnergyDiss = pd.DataFrame(floorenergy)
+        return FloorEnergyDiss
 
 class TargetSpectrum:
 

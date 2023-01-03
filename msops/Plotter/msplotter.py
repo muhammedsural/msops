@@ -145,13 +145,12 @@ class plotter:
         for ele in ops.getEleTags():
             temp = ElementEnergy.query(f"Eletags == {ele} ")
             fig,ax = plt.subplots(1,1 , sharex = True , sharey = True  , figsize=(20,8))
-            ax.plot( temp["ElementEnergy"] ) , ax.axhline(c = "k") , ax.axvline(c = "k") , ax.set_xlabel("Step"), ax.set_ylabel( "EH (kNM)") , ax.legend( [f"{ele} total"]) , ax.set_frame_on(False), ax.set_xlim(left = 0 ) ;
+            ax.plot( temp["ElementEnergy"] ), ax.axhline(c = "k"), ax.axvline(c = "k"), ax.set_xlabel("Step"), ax.set_ylabel( "EH (kNM)"), ax.legend( [f"{ele} total"]), ax.set_frame_on(False), ax.set_xlim(left = 0 )
             plt.suptitle( f" Frame{ele} Dissipated Energy Graphs".upper(), fontsize = 20 );fig.dpi=300 
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
             if os.path.exists(f"{SaveFolder}\\Framesplot") != True:
                 os.mkdir(f"{SaveFolder}\\Framesplot")
-
             plt.savefig(f"{SaveFolder}\\Framesplot\\{FigName}{ele}.png")
             #plt.show() 
 

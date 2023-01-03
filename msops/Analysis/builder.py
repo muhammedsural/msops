@@ -1656,14 +1656,26 @@ class opsbuild:
         
         return M,K,C,Nmass,
         
-    def seismic_sequences_analysis(self,numFloor : int,TimeAnalysis : float , scalecoeff : list, Events : pd.DataFrame,columndictionary : dict,floorFrames : pd.DataFrame,Lpl : float,beam_H : int,important_points_ext:list,important_points_int:list,Folderspath:str,EarthquakeName:str):
+    def seismic_sequences_analysis(self,
+                                   numFloor : int,
+                                   TimeAnalysis : float , 
+                                   scalecoeff : list, 
+                                   Events : pd.DataFrame,
+                                   columndictionary : dict,
+                                   floorFrames : pd.DataFrame,
+                                   Lpl : float,
+                                   beam_H : int,
+                                   important_points_ext:list,
+                                   important_points_int:list,
+                                   Folderspath:str,
+                                   EarthquakeName:str
+                                  ):
         #                                                                   MAIN SHOCK AFTER SHOCK ANALYSIS 
         #===================================================================================================================================================================
         IDloadTag = 400
         tsTag = 3
         for count,factor in enumerate(scalecoeff):
             for index in range(0,len(Events.columns)-1):
-                
                 # Zaman serilerinin tanımlanması
                 #===============================================================================================================
                 GMdirection = 1
@@ -1672,7 +1684,7 @@ class opsbuild:
                 if index % 2 == 0:
                     if index == 0:
                         ops.remove('loadPattern',tsTag)
-                        #ops.reset()
+                        ops.reset()
                         print(f" ==> Opensees domainindeki time series silindi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
                     dt = Events[Events.columns[index]][1]-Events[Events.columns[index]][0]
                     accel = Events[Events.columns[index+1]]
@@ -1682,21 +1694,24 @@ class opsbuild:
 
                     #Run time history analysis
                     #===============================================================================================================
-                    Dt = Events["Time"][1]-Events["Time"][0]
 
-                    if TimeAnalysis <= 0:
-                        TmaxAnalysis =Events[Events.columns[index]][Events.last_valid_index()]
-                    else:
-                        TmaxAnalysis = TimeAnalysis
+                    DtAnalysis   = dt
+                    if TmaxAnalysis is None:
+                        TmaxAnalysis = Events[Events.columns[index]][Events.last_valid_index()]
                     
                     ops.wipeAnalysis()
-                    self.analysis_define(solver=0, Tol=1e-8, maxNumIter=300, pFlag=0, nType=2)
+                    engine.analysis_define(solver=0, Tol=1e-8, maxNumIter=300, pFlag=0, nType=2)
                     print(f" ==> analiz secenekleri tanimlandi ve analiz baslatildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-                    ElementForces,NodalDisplacement,MomentRotation,FiberStressStrain,Eds,times =    self.run_timehistory(columndictionary,DtAnalysis=Dt,TmaxAnalysis=TmaxAnalysis,                                                                                outEleForces = True,
-                    outNodalDisp = True,
-                    outFiber     = True,
-                    animotions   = False,
-                    outSection   = True)
+                    ElementForces,NodalDisplacement,MomentRotation,FiberStressStrain,Eds,times = engine.run_timehistory(
+                                                                                                                        columndict=pf.column_dict, 
+                                                                                                                        DtAnalysis=DtAnalysis, 
+                                                                                                                        TmaxAnalysis=TmaxAnalysis, 
+                                                                                                                        outEleForces = True, 
+                                                                                                                        outNodalDisp = True, 
+                                                                                                                        outFiber= True, 
+                                                                                                                        animotions= False, 
+                                                                                                                        outSection= True
+                                                                                                                       )
                     print(f" ==> {factor} carpani icin {index/2}. deprem analizi bitti - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
                     msp.plot_TNodeTime(time=times,NodalDisplacement=NodalDisplacement, SaveFolder = f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\", FigName = f"Top_Disp-Time{int(index/2)}")
 
@@ -1708,27 +1723,35 @@ class opsbuild:
                     MomentRotation.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\MomentRotationsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
                     FiberStressStrain.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\FiberStressStrainsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
                     print(f" ==> {factor} carpani icin {index/2}. deprem analizi sonuçlari csv olarak kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+
                     #Modal Analysis
                     #===============================================================================================================
 
-                    T1, Mratios, Mfactors, Mtots = self.modal_analys2(numFloor)
+                    T1, Mratios, Mfactors, Mtots = op.modal_analys2(numFloor)
                     ops.loadConst('-time', 0.0)
                     print(f" ==> {factor} carpani icin {index/2}. deprem analizi sonrasi modal analiz yapildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+                    
                     #Story Drift Check
                     #===============================================================================================================
 
-                    Columndrift = fp.StoryDrift2(NodalDisplacement,columndictionary,floorFrames)
+                    Columndrift = fp.StoryDrift2(NodalDisplacement,pf.column_dict,pf.floorFrames)
                     Columndrift.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\ColumndriftsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
                     print(f" ==> {factor} carpani icin {index/2}. deprem analizi için kolon driftleri hesaplandi ve csv dosyalari kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
                     #Columndrift.query(f"Floor == {1}") # 1.kat sonuçları
                     
                     #Performance Check
                     #===============================================================================================================
+                    FrameRotationPerformanceCheck = performance.FrameRotationPerformanceCheck(MomentRotation=MomentRotation, performance_limits=performance_limits)
+                    FrameRotationPerformanceCheck.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\RotationPerformanceEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi için elemanların dönme performansları bulundu ve csv dosyasi kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
 
-                    performance = prf()
-                    FrameCheck = performance.FramePerformanceCheck(column_dict = columndictionary,floorFrames = floorFrames,Lpl=Lpl,beam_H=beam_H,important_points_ext=important_points_ext,important_points_int=important_points_int,FiberStressStrain=FiberStressStrain,MomentRotation=MomentRotation)
-                    FrameCheck.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\FrameChecksEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi Performans hesaplari yapildi ve csv dosyasi kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+                    CoreFiberStressStrainMax = performance.MaxCoreFiberStrain(StressStrain=FiberStressStrain)
+                    CoreFiberStressStrainMax.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\MaxCoreStrainsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi için maximum beton ve çelik gerilmeleri bulundu ve csv dosyasi kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
+
+                    FrameStrainPerformanceCheck = performance.FrameStrainPerformanceCheck(CoreFiberStressStrainMax,performance_limits)
+                    FrameStrainPerformanceCheck.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\StrainPerformanceEqe{int(index/2)}.csv",index = False, encoding='utf-8')
+                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi için elemanların şekildeğiştirme performansları bulundu ve csv dosyasi kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
 
                     #Energy Calculations
                     #===============================================================================================================
@@ -1737,22 +1760,10 @@ class opsbuild:
                     SectionEnergy = pd.DataFrame(columns=["Eletags","iNode","jNode"])
                     for ele in ops.getEleTags():
                         tempdf = MomentRotation.query(f"Eletags == {ele} ")
-                        EH_i_total = cumtrapz(tempdf.iMoment, tempdf.iRotation)
-                        EH_j_total = cumtrapz(tempdf.jMoment, tempdf.jRotation)
-                        newj = []
-                        newi = []
-                        for i,j in zip(EH_i_total,EH_j_total):
-                            if i < 0 :
-                                i *= -1
-                                newi.append(i)
-                            else:
-                                newi.append(i)
-                            if j < 0 :
-                                j *= -1
-                                newj.append(j)
-                            else:
-                                newj.append(j)
-                        #EH_j_total = [-1*j for j in EH_j_total]
+                        EH_i_total = sc.cumtrapz(tempdf.iMoment, tempdf.iRotation)
+                        EH_j_total = sc.cumtrapz(tempdf.jMoment, tempdf.jRotation)
+                        newj = [abs(i) for i in EH_i_total]
+                        newi = [abs(j) for j in EH_j_total]
                         EH_j_total = newj
                         EH_i_total = newi
                         del newj,newi
@@ -1763,15 +1774,19 @@ class opsbuild:
                     #===============================================================================================================
                     #pf.floorFrames[(pf.floorFrames.EleType == "Column")&(pf.floorFrames.Floor == 1)]
                     ElementEnergy = SectionEnergy.copy()
-                    floor = [floorFrames.loc[ele]["Floor"] for ele in ElementEnergy.Eletags if ele == floorFrames.EleId[ele]]
+                    floor = [pf.floorFrames.loc[ele]["Floor"] for ele in ElementEnergy.Eletags if ele == pf.floorFrames.EleId[ele]]
                     ElementEnergy["Floor"] = floor
                     ElementEnergy["ElementEnergy"] = ElementEnergy["iNode"] + ElementEnergy["jNode"]
                     ElementEnergy.drop(columns=['iNode', 'jNode'], axis=1,inplace=True)
 
                     #Total olarak katlarda dağıtılan enerji
                     #===============================================================================================================
-                    # for floor in pf.floorFrames.Floor.unique():
-                    #     print(ElementEnergy.query(f"Floor == {floor} ")["ElementEnergy"].sum())
+                    floorenergy = {floor : [] for floor in pf.floorFrames.Floor.unique()}
+                    for floor in pf.floorFrames.Floor.unique():
+                        FloorEnergy = ElementEnergy.query(f"Floor == {floor} ")["ElementEnergy"].sum()
+                        floorenergy[floor].append(FloorEnergy) 
+                    FloorEnergyDiss = pd.DataFrame(floorenergy)
+                    FloorEnergyDiss.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\FloorEnergysEqe{int(index/2)}.csv",index = False, encoding='utf-8')
 
                     # Energy files save
                     #===============================================================================================================
@@ -1798,7 +1813,6 @@ class opsbuild:
                     #===============================================================================================================
                     msp.plot_AllFrame_Energy(ElementEnergy=ElementEnergy,FigName=f"FrameEnergy{index/2}",SaveFolder=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\EnergyPlots")
                     print(f" ==> {factor} carpani icin {index/2}. deprem analizi elemanlarin enerji grafikleri kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}")
-
                 IDloadTag += 1
                 tsTag += 1
 
