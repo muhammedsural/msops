@@ -255,9 +255,9 @@ def tbdy_mander(
         plt.show()
     
     fc1U  = -f_co*Unit.MPa          # UNCONFINED concrete (todeschini parabolic model), maximum stress
-    eps1U = -eps_c_sargısız[f_c_sargısız.index(max(f_c_sargısız))]      # strain at maximum strength of unconfined concrete
+    eps1U = -eps_c_sargısız[f_c_sargısız.index(max(f_c_sargısız))]     # strain at maximum strength of unconfined concrete
     fc2U  = -f_c_sargısız[-1]*Unit.MPa    # ultimate stress
-    eps2U = -eps_c_sargısız[-1]       # strain at ultimate stress
+    eps2U = -eps_c_sargısız[-1]        # strain at ultimate stress
     unconfined = {
                     "strain_stress" : [eps_c_sargısız,f_c_sargısız],
                     "values" :[fc1U,eps1U,fc2U,eps2U]

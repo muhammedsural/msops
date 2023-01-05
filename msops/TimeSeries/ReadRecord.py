@@ -6,10 +6,15 @@ import pandas as pd
 
 def calc_timegap(Td,damp_ratio,T) -> float:
         """
-        Td          : Kuvvetli yer hareketi süresi
-        damp_ratio  : Yapının sönüm oranı
-        T           : Yapının doğal titreşim periyodu
-
+        INFO
+            "Required time gap between mainshock and aftershock for dynamic analysis of 
+structures" makalesinde iki ardışık deprem arasında doğal hareketi sıfırlamak için gerekli olan zaman aralığının hesaplanmasındaki  önerilen formülasyon kullanılmıştır.
+        INPUT
+            Td          : Kuvvetli yer hareketi süresi
+            damp_ratio  : Yapının sönüm oranı
+            T           : Yapının doğal titreşim periyodu
+        OUTPUT
+            R_timegap = durgun geçmesi gereken zaman (sn)
         """
         R_rest = Td*(0.05/damp_ratio)*(((21.8559*T)+0.0258)*(Td**(-0.9982))+0.0214)
         R_timegap = round(R_rest,0)
@@ -91,6 +96,7 @@ def load_PEERNGA_record(filepath):
     
     return acc,dt,npts,eqname
 
+# Kullanılmaya fonksiyon
 def main_after_record(eventname="Mammoth_Lakes",plot=False):
     """
     INPUT :
@@ -145,6 +151,7 @@ def ChangeTimeSeriesForPGA(TimeSeries : pd.DataFrame,targetPGA : float) -> pd.Da
     coef = targetPGA/realPGA
     newTimeSeries = [acc*coef for acc in TimeSeries.Acceleration]
     TimeSeries["ChangedAcc"] = newTimeSeries
+    del newTimeSeries
     return TimeSeries
 
 

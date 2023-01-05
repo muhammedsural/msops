@@ -180,6 +180,22 @@ class Concrete():
         self.Ec = Ec
         
     def __post_init__(self):
+        # conc = {
+        #             "C16": [16*un.MPa, 1.4*un.MPa, 27000*un.MPa],
+        #             "C18": [18*un.MPa, 1.5*un.MPa, 27500*un.MPa],
+        #             "C20": [20*un.MPa, 1.6*un.MPa, 28000*un.MPa],
+        #             "C25": [25*un.MPa, 1.8*un.MPa, 30000*un.MPa],
+        #             "C30": [30*un.MPa, 1.9*un.MPa, 32000*un.MPa],
+        #             "C35": [35*un.MPa, 2.1*un.MPa, 33000*un.MPa],
+        #             "C40": [40*un.MPa, 2.2*un.MPa, 34000*un.MPa],
+        #             "C45": [45*un.MPa, 2.3*un.MPa, 36000*un.MPa],
+        #             "C50": [50*un.MPa, 2.5*un.MPa, 37000*un.MPa]
+        #        }
+        # if self.name is not None:
+        #     self.fck  = conc[self.name][0]
+        #     self.fctk = conc[self.name][1]
+        #     self.Ec   = conc[self.name][2]
+
         if self.Ec is None:
             self.__calc_young_modules()
         if self.shear_modules is None:

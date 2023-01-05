@@ -4,6 +4,48 @@ from msops.Material.tbdymaterials import tbdy_mander
 from msops.Plotter.msplotter import plotter
 from msops.Units.Unit import Unit as un
 from msops.Material.material import opsmaterial
+from msops.Material.material import Concrete,Steel
+from msops.Utility import Utilities as uti
+
+
+@dataclass
+class RectangularSectionProp():
+    """Rectangular reinforcement concrete section object"""
+    Sectionname                 : str
+    Width                       : float
+    Height                      : float
+    Cover                       : float
+    TieRebarDiameter            : float
+    TieRebarVerticalSpace       : float
+    XDirTie                     : int
+    YDirTie                     : int
+    LongnitutalRebarDiameter    : float
+    ConcreteMaterial            : Concrete = field(default_factory=Concrete)
+    RebarMaterial               : Steel    = field(default_factory=Steel)
+    RebarNumbers                : list     = field(default_factory=list)
+
+    def StressStrainModel(self) -> None:
+        unconfined,confined,impoints=tbdy_mander(celiksınıfı        = self.RebarMaterial.name,
+                                                 f_co               = self.ConcreteMaterial.fck,
+                                                 bw                 = self.Width,
+                                                 h                  = self.Height,
+                                                 s                  = self.TieRebarVerticalSpace,
+                                                 etriye_çapı        = self.TieRebarDiameter,
+                                                 boyuna_donatı_çapı = self.LongnitutalRebarDiameter,
+                                                 pas_payı           = self.Cover,
+                                                 numBarsTop         = self.RebarNumbers[0],
+                                                 numBarsBot         = self.RebarNumbers[1],
+                                                 gövde_donatı_adeti = self.RebarNumbers[2],
+                                                 x_koladeti         = self.XDirTie,
+                                                 y_koladeti         = self.YDirTie,
+                                                 plot=True
+                                    )
+        self.ConfinedConreteModel    = confined
+        self.UnconfinecConcreteModel = unconfined
+        self.OpenseesValues          = impoints
+    
+    def __post__init(self) -> None:
+        pass
 
 class rcsectionprop():
     def __init__(self,sectionname:str,width:float,height:float,concmaterial:None,rebarmaterial:None,numrebars : None,dialongrebars:None,density=24.99):
@@ -90,9 +132,9 @@ class RecSection:
             fiberData      =
     """
     Id                 :  int
-    name               :  Optional[str]
-    b                  :  Optional[float]
-    h                  :  Optional[float]
+    name               :  str
+    b                  :  float
+    h                  :  float
     cover              :  float 
     k                  :  float
     coreConc           :  Optional[opsmaterial]  = opsmaterial(3,1,[-26922.92,-0.00546,-24433.71,-0.01390],stress_strain_test=False)
@@ -229,7 +271,23 @@ class SectionDatas:
         """Find all frames with a particular role in the employee list"""
         return [section for section in self.Sections if section.Id in SectionIdList]
 
-"""if __name__ == '__main__':
-    sec = RecSection(Id=1,name='C4040',b=700,h=300,cover=25,k=1,numrebars=[6,2,6],dia_rebars=[14,14,14])
-    sec.set_reinforcement_conc(plot=False)
-    print(sec)"""
+# if __name__ == '__main__':
+#     C25 = Concrete(name="C25")
+#     S420= Steel(name="S420")
+#     section = RectangularSectionProp(Sectionname="C3070",
+#                                     Width=30,
+#                                     Height=70,
+#                                     Cover=25,
+#                                     TieRebarDiameter=10,
+#                                     TieRebarVerticalSpace=100,
+#                                     XDirTie=6,
+#                                     YDirTie=6,
+#                                     LongnitutalRebarDiameter=14,
+#                                     ConcreteMaterial=C25,
+#                                     RebarMaterial=S420,
+#                                     RebarNumbers=[3,8,3])
+#     print(section)
+#     section.StressStrainModel()
+    # sec = RecSection(Id=1,name='C4040',b=700,h=300,cover=25,k=1,numrebars=[6,2,6],dia_rebars=[14,14,14])
+    # sec.set_reinforcement_conc(plot=False)
+    #print(sec)

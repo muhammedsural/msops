@@ -534,28 +534,29 @@ class Performance:
                 Çubuk elemanlarin her iki ucuda zamana bağli hesaplanan enerji değerlerinin toplanmasi ile bulunmuştur.
         """
         ElementEnergy = SectionEnergy.copy()
-        floor = [FloorFrames.loc[ele]["Floor"] for ele in ElementEnergy.Eletags if ele == FloorFrames.EleId[ele]]
-        ElementEnergy["Floor"] = floor
+        floor   = [FloorFrames.loc[ele]["Floor"] for ele in ElementEnergy.Eletags if ele == FloorFrames.EleId[ele]]
+        eletype = [FloorFrames.loc[ele]["EleType"] for ele in ElementEnergy.Eletags if ele == FloorFrames.EleId[ele]]
+        ElementEnergy["Floor"]   = floor
+        ElementEnergy["EleType"] = eletype
         ElementEnergy["ElementEnergy"] = ElementEnergy["iNode"] + ElementEnergy["jNode"]
         ElementEnergy.drop(columns=['iNode', 'jNode'], axis=1,inplace=True)
 
         return ElementEnergy
 
-    def FloorEnergyCalcs(self,FrameEnergy: pd.DataFrame,FloorFrames : pd.DataFrame) -> pd.DataFrame:
+    def FloorEnergyCalcs(self,FrameEnergy: pd.DataFrame) -> pd.DataFrame:
         """
         Katlarda tüketilen enerji hesaplamalari
             INPUT
                 FrameEnergy       : Çubuk elemanlarin iki ucundaki entegrasyon noktalarinda harcanan enerjilerin toplanarak bulunduğu Dataframe
-                FloorFrames   : Kattaki eleman bilgilerinin bulunduğu Dataframe
             RESULT
                 FloorEnergyDiss   : Katlarda bulunan çubuk elemanlarda harcanan enerjilerin toplanarak bulunduğu Dataframe
         """
-        floorenergy = {floor : [] for floor in FloorFrames.Floor.unique()}
-        for floor in FloorFrames.Floor.unique():
-            FloorEnergy = FrameEnergy.query(f"Floor == {floor} ")["ElementEnergy"].sum()
-            floorenergy[floor].append(FloorEnergy) 
-        FloorEnergyDiss = pd.DataFrame(floorenergy)
-        return FloorEnergyDiss
+        FloorEnergyDiss = FrameEnergy.groupby(["Floor","Eletags","EleType"])["ElementEnergy"].agg(["last","sum"])
+        FloorEnergyDiss = FloorEnergyDiss.groupby(["EleType","Floor"]).agg("last","sum")
+        TotalFloors = FloorEnergyDiss.groupby("Floor").sum()
+        # katlar = FloorEnergyDiss["last"].get("Beam").index
+        
+        return TotalFloors
 
 class TargetSpectrum:
 

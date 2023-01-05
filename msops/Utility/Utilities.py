@@ -60,7 +60,6 @@ def CalculateRebarNumbers(NeedRebarArea : float,UseRebarDiameter : int) -> int:
     if NumberRebar == 1 :
         NumberRebar = 2
     
-
     return int(NumberRebar)
     
 def CreateOutputsFolder(TargetPGA : list,EarthquakeName : str):
