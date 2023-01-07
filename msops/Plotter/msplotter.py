@@ -5,37 +5,23 @@ import opsvis as opsv
 import numpy as np
 from pandas import DataFrame
 from scipy.integrate import cumtrapz
+import matplotlib
+matplotlib.use('Agg')
 class plotter:
-    
-    def top_disp_plot(nodalDispDict,time,dt):
+    def plot_FloorEnergyDissap(df : DataFrame,floorEnergy: DataFrame ,EqeName : str ="Coalinga"):
+        """Katlarda dağıtılan enerji grafiğini verir
+            INPUTS
+                df          : list = Eleman enerjilerinin kat bazında tutulduğu Dataframelerin listesi
+                floorEnergy : list = Katlarda dağıtılan enerjilerin tutulduğu Dataframelerin listesi
+                EqeName     : int  =analiz edilen zaman serisinin ismi default "Coalinga"
         """
-            nodalDispDict : Displacement values for all nodes. get, from run analysis function
-            time          : Time values get from run analysis func.
-            dt            : Time step
-        """
-        index = 0
-        value = 0
-        for key,val in enumerate(nodalDispDict[max(ops.getNodeTags())]):
-            if abs(val) == max(abs(nodalDispDict[max(ops.getNodeTags())])):
-                index = key 
-                value = val
-
-        fig, ax = plt.subplots(figsize=(25,10))
-        fig.subplots_adjust(bottom=0.15, left=0.2)
-        ax.grid()
-        plt.scatter(index*dt,value, s=80, c="r", alpha=0.5)
-        ax.plot(time,nodalDispDict[max(ops.getNodeTags())])
-
-        meandispvalue=nodalDispDict[max(ops.getNodeTags())].mean()
-        ax.axhline(0, color='black', lw=2)
-        #ax.text(0, nodalDispDict[max(ops.getNodeTags())].mean()+meandispvalue, "Mean displacement line",color ="r", fontsize=12)
-        #ax.axhline(nodalDispDict[max(ops.getNodeTags())].mean(), color='red', lw=2)
-        
-        
-        ax.annotate(f'Max Displacement = {round(value,3)}m', xy =(index*dt, value),xytext =(index*dt+meandispvalue, value+meandispvalue),arrowprops = dict(facecolor ='green',shrink = 0.05),)
-        ax.set_xlabel('Time [Sec]')
-        ax.set_ylabel(f'Horizontal Displacement of node {max(ops.getNodeTags())}')
-        plt.show()
+        df.groupby(["EleType","Floor"])["last","sum"].sum()
+        fig , ax = plt.subplots( 1,1 , sharex = False , sharey = True  , figsize=(20,4))
+        ax.plot(df['last']["Beam"].values  ,df['last']["Beam"].keys()  ,label="MS-Beam"    ,color='r', marker='o', linestyle='dashed',linewidth=2, markersize=9)
+        ax.plot(df['last']["Column"].values,df['last']["Column"].keys(),label="MS-Column"  ,color='g', marker='o', linestyle='dashed',linewidth=2, markersize=9)
+        ax.plot(floorEnergy['last'].values,floorEnergy['last'].keys()  ,label="MS-Total"   ,color='b', marker='o', linestyle='dashed',linewidth=2, markersize=9)
+        ax.set_xlabel("Energy (kNm)");ax.set_ylabel("Story No");ax.legend();ax.set_frame_on(True);ax.grid();
+        fig.suptitle( f"{EqeName} Seismic Sequences Floor Dissipated Energy Graphs".upper(), fontsize = 12 );fig.dpi=300;
 
     def plot_TNodeTime(time : list,NodalDisplacement : DataFrame, SaveFolder:str, FigName:str):
         topnode = NodalDisplacement.query(f"Nodetags == {max(ops.getNodeTags())}")
@@ -49,7 +35,6 @@ class plotter:
         ax.axhline(0, color='black', lw=2)
         ax.set_xlabel('Time [Sec]')
         ax.set_ylabel(f'Horizontal Displacement of node {max(ops.getNodeTags())} [m]')
-        
         if os.path.exists(SaveFolder) != True:
             os.mkdir(SaveFolder)
         plt.savefig(f"{SaveFolder}\\{FigName}.png")
@@ -64,16 +49,7 @@ class plotter:
                 ax[0].plot( itotalRot[ele], ibasicForce[ele] ) , ax[0].axhline(c = "k") , ax[0].axvline(c = "k") , ax[0].set_xlabel("Rotation (rad)"), ax[0].set_ylabel( "Moment (kNM)") , ax[0].legend( ["i node"]) , ax[0].set_frame_on(False) ; 
                 ax[1].plot( jtotalRot[ele], jbasicForce[ele] ) , ax[1].axhline(c = "k") , ax[1].axvline(c = "k") , ax[1].set_xlabel("Rotation (rad)"), ax[1].set_ylabel( "Moment (kNM)") , ax[1].legend( ["j node"]) , ax[1].set_frame_on(False) ; plt.suptitle( f"Frame{ele} Hysteresis Graphs".upper(), fontsize = 20 );
         plt.show()
-    
-    def plot_Rotation(totalRot,plasticRot,elasticRot,count=5):
-        for ele in ops.getEleTags():
-            if ele <= count:
-                fig , ax = plt.subplots( 1,3 , sharex = True , sharey = True  , figsize=(20,5) )
-                ax[0].plot( totalRot[ele]   ) , ax[0].axhline(c = "k") , ax[0].axvline(c = "k") , ax[0].set_xlabel("Step"), ax[0].set_ylabel( "Rotation (rad)") , ax[0].legend( ["Total rot"]) , ax[0].set_frame_on(False) ; 
-                ax[1].plot( plasticRot[ele] ) , ax[1].axhline(c = "k") , ax[1].axvline(c = "k") , ax[1].set_xlabel("Step"), ax[1].set_ylabel( "Rotation (rad)") , ax[1].legend( ["Plastic"]) , ax[1].set_frame_on(False) ; 
-                ax[2].plot( elasticRot[ele] ) , ax[2].axhline(c = "k") , ax[2].axvline(c = "k") , ax[2].set_xlabel("Step"), ax[2].set_ylabel( "Rotation (rad)") , ax[2].legend( ["Elastic"]) , ax[2].set_frame_on(False) ; 
-                plt.suptitle( f"{ele} Rotations Graphs".upper(), fontsize = 20 );
-    
+
     def plot_MomentRotation(MomentRotation : DataFrame,FigName : str,SaveFolder : str):
         for ele in ops.getEleTags():
             fig , ax = plt.subplots( 1,2 , sharex = True , sharey = True  , figsize=(20,5) )
@@ -130,9 +106,26 @@ class plotter:
         for ele in ops.getEleTags():
             temp = SectionEnergy.query(f"Eletags == {ele} ")
             fig , ax = plt.subplots( 1,2 , sharex = True , sharey = True  , figsize=(20,8) )
-            ax[0].plot( temp["iNode"] ) , ax[0].axhline(c = "k") , ax[0].axvline(c = "k") , ax[0].set_xlabel("Step"), ax[0].set_ylabel( "EH (kNM)") , ax[0].legend( ["i node total  "]) , ax[0].set_frame_on(False), ax[0].set_xlim(left = 0 ) ;
-            ax[1].plot( temp["jNode"]  ) , ax[1].axhline(c = "k") , ax[1].axvline(c = "k") , ax[1].set_xlabel("Step"), ax[1].set_ylabel( "EH (kNM)") , ax[1].legend( ["j node total  "]) , ax[1].set_frame_on(False), ax[1].set_xlim(left = 0 ) ;
+            ax[0].plot( temp["iNode"] )
+            ax[0].axhline(c = "k")
+            ax[0].axvline(c = "k")
+            ax[0].set_xlabel("Step") 
+            ax[0].set_ylabel( "EH (kNM)")
+            ax[0].legend( ["i node total  "])
+            ax[0].set_frame_on(False)
+            ax[0].set_xlim(left = 0 )
+
+            ax[1].plot( temp["jNode"]  )
+            ax[1].axhline(c = "k")
+            ax[1].axvline(c = "k")
+            ax[1].set_xlabel("Step")
+            ax[1].set_ylabel( "EH (kNM)")
+            ax[1].legend( ["j node total  "])
+            ax[1].set_frame_on(False)
+            ax[1].set_xlim(left = 0 )
             plt.suptitle( f" Frame{ele} Dissipated Energy Graphs".upper(), fontsize = 20 );fig.dpi=300
+                      
+
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
             if os.path.exists(f"{SaveFolder}\\Sectionsplot") != True:
@@ -243,10 +236,8 @@ class plotter:
         """
             DispCtrlNode: # List containing load factors used throughout the analysis
             LoadFactor  : # List containing displacement of control node throughout the analysis  
-            
         """
-        # Plot the capacity curve
-                # ------------------------------------------------------------------------
+
         fig, ax = plt.subplots(figsize=(10,10))
         fig.subplots_adjust(bottom=0.15, left=0.2)
         ax.grid()

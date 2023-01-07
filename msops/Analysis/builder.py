@@ -321,6 +321,7 @@ class opsbuild:
                 print('-------------------------------------------------------------------------')
                 break
         outputs = [Deformation,Force]
+
         if plot:
             # Plot the results
             # ------------------------------------------------------------------------
@@ -605,9 +606,8 @@ class opsbuild:
             step +=1
             ok = ops.analyze(1)
             if ok == 0:
-                loadf = ops.getTime()                                # get load factor
                 LoadFactor.append(ops.getTime())                     # append loadfactor
-                Curvature.append(HSec*ops.nodeDisp(2, 3)) # append moment
+                Curvature.append(ops.nodeDisp(2, 3)) # append moment
             else:
                 print(f"analiz converge etmedi {step}/{numIncr}")
                 break
@@ -1229,7 +1229,10 @@ class opsbuild:
         # AnalysisType -- defines what type of analysis is to be performed ('Static', 'Transient' etc.)
         ops.analysis('Transient')
 
-    def run_timehistory(self,columndict,DtAnalysis=0.01,TmaxAnalysis=10,
+    def run_timehistory(self,
+                        columndict,
+                        DtAnalysis=0.01,
+                        TmaxAnalysis=10,
                         outEleForces = False,
                         outNodalDisp = True,
                         outFiber     = True,
@@ -1238,9 +1241,15 @@ class opsbuild:
                         fiberData    = False
                         ):
         """
-        DtAnalysis=0.01,TmaxAnalysis=10,outEleForces =False,outNodalDisp=True,
-        #outFiber : [record,Hsec,cover,idCoverMat,idCoreMat,idSteel,lpl] default:[True,0.30,0.05,1,2,3]
-        
+        columndict    : Kolon bilgilerinin bulunduğu sözlük
+        DtAnalysis    : Zaman serisindeki zaman artim degeri
+        TmaxAnalysis  : Toplam analiz edilmek istenen süre
+        outEleForces  : Eleman kuvvetleri kayit edilsin mi? Default = False
+        outNodalDisp  : Düğüm noktalarinin deplasmanlari kayit edilsin mi? Default = True
+        outFiber      : Fiber sonuclari kayit edilsin mi?
+        animotions    : Animasyon bilgileri kayit edilsin mi?
+        outSection    : Kesit sonuclari kayit edilsin mi?
+        fiberData     : 
         """
         # Konfigürasyon
         an = datetime.now()

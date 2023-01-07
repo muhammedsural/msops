@@ -66,7 +66,7 @@ class FundemantelParameters:
 
         return drift
 
-    def StoryDrift2(NodalDisplacement : pd.DataFrame,column_dict : dict,floorFrames : pd.DataFrame) -> pd.DataFrame:
+    def StoryDrift2(NodalDisplacement : pd.DataFrame,column_dict : dict,floorFrames : pd.DataFrame,Folderspath : str, Filename : str, index = False, encoding='utf-8',decimal=",") -> pd.DataFrame:
         """
             INFO
                 Zaman tanım alanında analizde kolonların göreli kat ötelemesi sonuçları getirilir.
@@ -98,6 +98,7 @@ class FundemantelParameters:
             ColumnDrift["XDriftCheck"] = ColumnDrift["DeltaXMax"]/ColumnDrift["Length"]
             ColumnDrift["YDriftCheck"] = ColumnDrift["DeltaYMax"]/ColumnDrift["Length"]
         del tempix,tempiy,tempjx,tempjy,DeltaX,DeltaY,ColumnProp
+        ColumnDrift.to_csv(path_or_buf=f"{Folderspath}\\{Filename}.csv",index = False, encoding='utf-8',decimal=",")
 
         return ColumnDrift
 
@@ -308,7 +309,7 @@ class Performance:
 
         return PerfLimit
 
-    def MaxCoreFiberStrain(self,StressStrain : pd.DataFrame) -> pd.DataFrame:
+    def MaxCoreFiberStrain(self,StressStrain : pd.DataFrame,Folderspath : str, Filename : str, index = False, encoding='utf-8',decimal=",") -> pd.DataFrame:
         """
         Çekirdek betondaki maksimum şekildeğiştirmeler ve donatilardaki maksimum şekildeğiştirmeleri hesaplar
 
@@ -328,9 +329,10 @@ class Performance:
         FiberStrainMax["SteelStrainMax"] = steelstrain
         FiberStrainMax.drop(columns=['TopCoreStrain', 'TopSteelStrain','BotCoreStrain', 'BotSteelStrain'], axis=1,inplace=True)
         FiberStrainMax.columns = ["Eleid","CoreStrainMax","SteelStrainMax"]
+        FiberStrainMax.to_csv(path_or_buf=f"{Folderspath}\\{Filename}.csv",index = index, encoding=encoding,decimal=decimal)
         return FiberStrainMax
 
-    def FrameRotationPerformanceCheck(self,MomentRotation : pd.DataFrame,performance_limits : pd.DataFrame) -> pd.DataFrame:
+    def FrameRotationPerformanceCheck(self,MomentRotation : pd.DataFrame,performance_limits : pd.DataFrame,Folderspath : str, Filename : str, index = False, encoding='utf-8',decimal=",") -> pd.DataFrame:
         """Frame rotation performance check 0 -> Sınırlı Hasar; 1 -> Belirgi Hasar; 2 -> İleri Hasar; 3 -> Göçme Durumu; """
         RotationPerform = MomentRotation.copy()
         RotationPerform.drop(columns=['iMoment', 'jMoment'], axis=1,inplace=True)
@@ -361,10 +363,12 @@ class Performance:
 
         RotationPerform["iRotPerformLevel"] = iRotationPerformance
         RotationPerform["jRotPerformLevel"] = jRotationPerformance
+
+        RotationPerform.to_csv(path_or_buf=f"{Folderspath}\\{Filename}.csv",index = index, encoding=encoding,decimal=decimal)
         #FramePerfmCheck.drop(columns=['Eleid'], axis=1,inplace=True)
         return RotationPerform
 
-    def FrameStrainPerformanceCheck(self,CoreFiberStressStrainMax : pd.DataFrame, performance_limits : pd.DataFrame) -> pd.DataFrame:
+    def FrameStrainPerformanceCheck(self,CoreFiberStressStrainMax : pd.DataFrame, performance_limits : pd.DataFrame,Folderspath : str, Filename : str, index = False, encoding='utf-8',decimal=",") -> pd.DataFrame:
         """Strain performance check for all Frame. 0 -> Sınırlı Hasar ; 1 -> Belirgi Hasar ; 2 -> İleri Hasar ; 3 -> Göçme Durumu ; 4 -> Not Fiber"""
 
         core_strainlevel = []
@@ -409,6 +413,7 @@ class Performance:
             )         
         Strainperformance["ConcretePerformLevel"] = core_strainlevel
         Strainperformance["SteelPerformLevel"] = steel_strainslevel
+        Strainperformance.to_csv(path_or_buf=f"{Folderspath}\\{Filename}.csv",index = index, encoding=encoding,decimal=decimal)
         return Strainperformance
 
     def FramePerformanceCheck(self,column_dict : dict, beam_dict : dict, floorFrames : pd.DataFrame, important_points_ext :dict,important_points_int : dict,FiberStressStrain : pd.DataFrame, MomentRotation : pd.DataFrame) -> pd.DataFrame:
@@ -498,7 +503,7 @@ class Performance:
         print(" 0 -> Sınırlı Hasar; 1 -> Belirgi Hasar; 2 -> İleri Hasar; 3 -> Göçme Durumu; 4 -> Not Fiber")
         return FramePerfmCheck
 
-    def SectionEnergyCalcs(self,FrameMomentRotation : pd.DataFrame) -> pd.DataFrame:
+    def SectionEnergyCalcs(self,FrameMomentRotation : pd.DataFrame,Folderspath : str, Filename : str, index = False, encoding='utf-8',decimal=",") -> pd.DataFrame:
         """Elemanlarin iki ucunda tüketilen enerji hesaplamaları
             INPUT
                 FrameMomentRotation : Çubuk elemanlarin Moment-Rotation değerlerinin bulunduğu Dataframe
@@ -519,10 +524,10 @@ class Performance:
             del newj,newi
             energymember = pd.DataFrame({"Eletags": ele, "iNode": EH_i_total, "jNode": EH_j_total})
             SectionEnergy = pd.concat([SectionEnergy, energymember])
-        
+        SectionEnergy.to_csv(path_or_buf=f"{Folderspath}\\{Filename}.csv",index = index, encoding=encoding,decimal=decimal)
         return SectionEnergy
     
-    def FrameEnergyCalcs(self,SectionEnergy : pd.DataFrame,FloorFrames : pd.DataFrame) -> pd.DataFrame:
+    def FrameEnergyCalcs(self,SectionEnergy : pd.DataFrame,FloorFrames : pd.DataFrame,Folderspath : str, Filename : str, index = False, encoding='utf-8',decimal=",") -> pd.DataFrame:
         """
         Elemanlarin iki ucunda tüketilen enerji hesaplamalari
             INPUT
@@ -540,10 +545,10 @@ class Performance:
         ElementEnergy["EleType"] = eletype
         ElementEnergy["ElementEnergy"] = ElementEnergy["iNode"] + ElementEnergy["jNode"]
         ElementEnergy.drop(columns=['iNode', 'jNode'], axis=1,inplace=True)
-
+        ElementEnergy.to_csv(path_or_buf=f"{Folderspath}\\{Filename}.csv",index = index, encoding=encoding,decimal=decimal)
         return ElementEnergy
 
-    def FloorEnergyCalcs(self,FrameEnergy: pd.DataFrame) -> pd.DataFrame:
+    def FloorFramesEnergy(self,FrameEnergy: pd.DataFrame,Folderspath : str, Filename : str, index = False, encoding='utf-8',decimal=",") -> pd.DataFrame:
         """
         Katlarda tüketilen enerji hesaplamalari
             INPUT
@@ -551,11 +556,21 @@ class Performance:
             RESULT
                 FloorEnergyDiss   : Katlarda bulunan çubuk elemanlarda harcanan enerjilerin toplanarak bulunduğu Dataframe
         """
-        FloorEnergyDiss = FrameEnergy.groupby(["Floor","Eletags","EleType"])["ElementEnergy"].agg(["last","sum"])
-        FloorEnergyDiss = FloorEnergyDiss.groupby(["EleType","Floor"]).agg("last","sum")
-        TotalFloors = FloorEnergyDiss.groupby("Floor").sum()
+        FloorFramesEnergyDiss = FrameEnergy.groupby(["EleType","Floor","Eletags"])["ElementEnergy"].agg(["last","sum"]).reset_index().groupby(["EleType","Floor"])["last","sum"].sum().reset_index()
+        FloorFramesEnergyDiss.reset_index().to_csv(path_or_buf=f"{Folderspath}\\Framein{Filename}.csv",index = index, encoding=encoding,decimal=decimal)
+        return FloorFramesEnergyDiss
+
+    def FloorTotalEnergyCalcs(self,FloorFramesEnergy: pd.DataFrame,Folderspath : str, Filename : str, index = False, encoding='utf-8',decimal=",") -> pd.DataFrame:
+        """
+        Katlarda tüketilen enerji hesaplamalari
+            INPUT
+                FrameEnergy       : Çubuk elemanlarin iki ucundaki entegrasyon noktalarinda harcanan enerjilerin toplanarak bulunduğu Dataframe
+            RESULT
+                FloorEnergyDiss   : Katlarda bulunan çubuk elemanlarda harcanan enerjilerin toplanarak bulunduğu Dataframe
+        """
+        TotalFloors = FloorFramesEnergy.groupby("Floor").sum()
         # katlar = FloorEnergyDiss["last"].get("Beam").index
-        
+        TotalFloors.to_csv(path_or_buf=f"{Folderspath}\\{Filename}.csv",index = index, encoding=encoding,decimal=decimal)
         return TotalFloors
 
 class TargetSpectrum:
@@ -678,7 +693,7 @@ class TargetSpectrum:
         Sv = []
         Sa = []
         
-        T = np.arange(0.05, 6.0,.001)
+        T = np.arange(0.05, 6.0,.01)
         for i in T:
             omega = 2*np.pi/i 
             mass = 1 
@@ -716,7 +731,7 @@ class TargetSpectrum:
     def LocationSeriesSpectra(self,T,Accelertions,Periods):
         targetSa = 0
         for index,T_series in enumerate(Periods):
-            if round(T_series,3) == T:
+            if round(T_series,2) == T:
                 targetSa = Accelertions[index]
                 break
         return round(targetSa,4)
