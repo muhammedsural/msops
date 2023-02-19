@@ -108,12 +108,12 @@ def main_after_record(eventname="Mammoth_Lakes",plot=False):
             dt            : Kayıtların zaman adımları
     """
     
-    eventlist = [i for i in os.listdir(f"./{eventname}") if i.endswith('.AT2')] #verilen deprem kayıtlarının bulunduğu klasördeki .AT2 uzantılı dosyaların listelenmesi
+    eventlist = [i for i in os.listdir(f"{eventname}") if i.endswith('.AT2')] #verilen deprem kayıtlarının bulunduğu klasördeki .AT2 uzantılı dosyaların listelenmesi
     print(eventlist)
     mainafterTime = [] #deprem kayıtlarına ait zaman serilerinin eklendiği liste 
     mainafterAcc = [] # deprem kayıtlarına ait ivme serilerinin eklendiği liste
     for count,event in enumerate(eventlist):
-        with open(f"./{eventname}/{event}") as fp:
+        with open(f"{eventname}//{event}") as fp:
             line = next(fp)
             line = next(fp).split(',')
             year = (line[1].split('/'))[2]

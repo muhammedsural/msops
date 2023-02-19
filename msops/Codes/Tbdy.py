@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 from scipy.integrate import cumtrapz
 from statistics import median
 import matplotlib.pyplot as plt
+from msops.Errors import ErrorHandler
 
 class FundemantelParameters:
 
@@ -102,18 +103,9 @@ class FundemantelParameters:
 
         return ColumnDrift
 
-class ShapeError(Exception):
-    """Custom error that is raised when not enough vacation days are available."""
-
-    def __init__(self, future_index: int, target_index: int, message: str) -> None:
-        self.requested_days = future_index
-        self.remaining_days = target_index
-        self.message = message
-        super().__init__(message)
-
 class Performance:
         
-    def Steelstrain_Perform_Level(self,eps_su : float):
+    def Steelstrain_Perform_Level(self,eps_su : float) -> list:
         """
         INPUT
             eps_su : Ultimate strain value 
@@ -126,12 +118,11 @@ class Performance:
         eps_perf = [eps_sgö,eps_skh,eps_ssh]
         return eps_perf
 
-    def Concstrain_Perform_Level(self,h : float,bw : float,s : float ,f_sy : float,f_co : float,pas_payı : float,etriye_çapı : float,boyuna_donatı_çapı : float,numBarsTop : int,numBarsBot : int,gövde_donatı_adeti : int,x_koladeti : int,y_koladeti : int):
+    def Concstrain_Perform_Level(self,h : float,bw : float,s : float ,f_sy : float,f_co : float,pas_payı : float,etriye_çapı : float,boyuna_donatı_çapı : float,numBarsTop : int,numBarsBot : int,gövde_donatı_adeti : int,x_koladeti : int,y_koladeti : int) -> list:
 
         """
         INPUT:
-            
-            h                   : Kesitin yüksekliği
+            h                   : Kesitin yüksekliği 
             bw                  : Kesitin genişliği [mm]
             s                   : Etriye aralığı
             f_sy                : Çelik akma dayanımı
@@ -143,7 +134,6 @@ class Performance:
             gövde_donatı_adeti  : Kesit gövde bölgesindeki donatı sayısı  2 tarafta bulunan toplam adet
             x_koladeti          : x eksenini kesen sargı kol adeti
             y_koladeti          : y eksenini kesen sargı kol adeti
-
 
         OUTPUT:
             verilen kesit bilgilerine göre performans levellerinin strain değerlerinin listesini döndürür:
@@ -213,10 +203,10 @@ class Performance:
             ultimate_curvature  : Kesitin maksimum eğrilik değeri. Kesitin moment-curvature eğrisinin idealleştirilmesinden tespit edilebilir.
             yield_curvature     : Kesitin akma eğrilik değeri. Kesitin moment-curvature eğrisinin idealleştirilmesinden tespit edilebilir.
             Lp                  : Plastik mafsal boyu çerçeve sistemler için 0.5* etkin doğrultudaki yüz
-            Ls                  : Kesme açıklığı. Kesit yüksekliğinin 2 katı alınabilir.
-            db                  : Boyuna donatı çapı
+            Ls                  : Kesme açikliği. Kesit yüksekliğinin 2 kati alinabilir.
+            db                  : Boyuna donati çapi
         OUTPUT
-            rotation_performs = [göçme_bölgesi,kontollu_hasar,sınırlı_hasar]
+            rotation_performs = [göçme_bölgesi,kontollu_hasar,sinirli_hasar]
         """
         a = (ultimate_curvature-yield_curvature)
         b = 1-0.5*(Lp/Ls)
@@ -262,7 +252,7 @@ class Performance:
 
             if eletype == "Column":
                 if ColumnProp["Location"][eleid] == "Exterior":
-                    colext_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=PerfLimit["Lpl"][eleid],Ls=2*PerfLimit["H"][eleid],db=14)
+                    colext_perf =self.Rotation_Perform_Level(ultimate_curvature=0.09,yield_curvature=0.004,Lp=PerfLimit["Lpl"][eleid],Ls=2*PerfLimit["H"][eleid],db=14)
                     
                     limitsPerform.loc[eleid] = [
                                                     round(important_points_ext['performance'][0][0],4),
@@ -276,7 +266,7 @@ class Performance:
                                                     round(colext_perf["SH"][0],4)
                                                ]         
                 else:
-                    colint_perf =self.Rotation_Perform_Level(ultimate_curvature=0.009,yield_curvature=0.004,Lp=PerfLimit["Lpl"][eleid],Ls=2*PerfLimit["H"][eleid],db=14)
+                    colint_perf =self.Rotation_Perform_Level(ultimate_curvature=0.09,yield_curvature=0.004,Lp=PerfLimit["Lpl"][eleid],Ls=2*PerfLimit["H"][eleid],db=14)
                     
                     limitsPerform.loc[eleid] = [
                                                     round(important_points_int['performance'][0][0],4),
@@ -406,7 +396,7 @@ class Performance:
                 steel_strainslevel.append(4)
         
         if Strainperformance.last_valid_index() != len(core_strainlevel):
-            raise ShapeError(
+            raise ErrorHandler.ShapeError(
                 future_index=Strainperformance.last_valid_index(),
                 target_index=len(core_strainlevel),
                 message=f"Strainlerin tutulduğu Dataframe ile performans listesinin boyutlari ayni olmadiği için Dataframe içerisine performans listesi eklenemiyor!!! => {Strainperformance.last_valid_index()} != {len(core_strainlevel)}",
@@ -654,8 +644,7 @@ class TargetSpectrum:
             elif i>TL:
                 Sa.append(round(SD1*TL/(i**2), 4))
                 
-        target_spec = {"T" : T_list,
-                    "Sa" : Sa}
+        target_spec = {"T" : T_list,"Sa" : Sa}
 
         target_spec_df = pd.DataFrame().from_dict(target_spec)
         
@@ -676,8 +665,8 @@ class TargetSpectrum:
             Ra = D + ((R/I)-D)*(T/TB)
         return Ra
 
-    def ReducedTargetSpectrum(self,TargetSpectrum : pd.DataFrame,R : int, I : float, D : float, SD1 : float, SDs : float) -> pd.DataFrame:
-        """Reduced Target Spectra according to TBDY. TargetSpectrum -> HorizontalElasticSpectrum"""
+    def ReducedTargetSpectrum(self,TargetSpectrum : pd.DataFrame, R : int, I : float, D : float, SD1 : float, SDs : float) -> pd.DataFrame:
+        """Reduced Target Spectra according to TBDY. [TargetSpectrum -> HorizontalElasticSpectrum]"""
         Tw = TargetSpectrum.T
         RaT = [ self.Calc_Ra(R = R, T = T, I = I, D = D, SD1 =SD1 ,SDs = SDs) for T in Tw ]
         SaR = [(Sa/Ra) for Sa,Ra in zip(TargetSpectrum["Sa"],RaT)]

@@ -2,10 +2,23 @@ import math as mt
 import numpy as np
 import matplotlib.pyplot as plt
 from ..Units.Unit import Unit
+from msops.Material.material import Steel
 
 def tbdy_mander(
-                celiksınıfı,f_co,bw,h,s,etriye_çapı,boyuna_donatı_çapı,pas_payı,
-                numBarsTop,numBarsBot,gövde_donatı_adeti,x_koladeti,y_koladeti,plot=True
+                celiksınıfı : Steel,
+                f_co,
+                bw,
+                h,
+                s,
+                etriye_çapı,
+                boyuna_donatı_çapı,
+                pas_payı,
+                numBarsTop,
+                numBarsBot,
+                gövde_donatı_adeti,
+                x_koladeti,
+                y_koladeti,
+                plot=True
                ):
 
     """
@@ -13,15 +26,15 @@ def tbdy_mander(
     INPUT:
 
         celiksınıfı         : "S220","S420","B420C","B500C" çelik modelleri girilebilir sadece etriye için
-        f_co                : Beton basınç dayanımı
+        f_co                : Beton basınç dayanımı (MPa)
         bw                  : Kesitin genişliği [mm]
-        h                   : Kesitin yüksekliği
-        s                   : Etriye aralığı
+        h                   : Kesitin yüksekliği (mm)
+        s                   : Etriye aralığı (mm)
         etriye_çapı         : Etriye donatı çapı (mm)
         boyuna_donatı_çapı  : Boyuna donatı çapı (mm)
         pas_payı            : Beton pas payı (mm)
-        numBarsTop           : Kesit üst başlık bölgesindeki donatı sayısı 
-        numBarsBot           : Kesit alt başlık bölgesindeki donatı sayısı 
+        numBarsTop          : Kesit üst başlık bölgesindeki donatı sayısı 
+        numBarsBot          : Kesit alt başlık bölgesindeki donatı sayısı 
         gövde_donatı_adeti  : Kesit gövde bölgesindeki donatı sayısı 2 tarafta bulunan toplam adet
         x_koladeti          : x eksenini kesen sargı kol adeti
         y_koladeti          : y eksenini kesen sargı kol adeti
@@ -33,21 +46,21 @@ def tbdy_mander(
             unconfined = {
                             "strain_stress" : [eps_c_sargısız,f_c_sargısız],
                             "values" :[fc1U,eps1U,fc2U,eps2U]
-                        }
+                         }
+
             confined   = {
                             "strain_stress" : [eps_c,f_c,],
                             "values"        : [fc1C,eps1C,fc2C,eps2C]
-                        }
+                         }
 
             important_points = {
-                            "performance" : [collapse_pr,life_safety,immediate_occ],
-                            "curvepoints" : [confined_yield_point,confined_max_point,confined_ultimate_point]
-                       }
+                                "performance" : [collapse_pr,life_safety,immediate_occ],
+                                "curvepoints" : [confined_yield_point,confined_max_point,confined_ultimate_point]
+                               }
 
             eps_c: 0 dan ultimate strain değerine kadar 0.00001 adımla oluşturulmuş liste
             f_c  : Her eps_c değerine karşılık hesaplanmış beton gerilmesi listesi
             gerekli değerlerin olduğu bir liste vardır.
-    
     INFO :
         f_cc -> Maximum stress sargılı beton için
         eps_cc -> Sargılı betonda maximum stress anında strain değeri
@@ -67,25 +80,29 @@ def tbdy_mander(
 
     """
     eps_co = 0.002
+    # celikler = {
+    #     "S220" :[220,0.0011,0.011,0.12,1.20],
+    #     "S420" :[420,0.0021,0.008,0.08,1.15],
+    #     "B420C":[420,0.0021,0.008,0.08,1.15],
+    #     "B500C":[500,0.0025,0.008,0.08,1.15]
+    #     }
 
 
-    celikler = {
-        "S220" :[220,0.0011,0.011,0.12,1.20],
-        "S420" :[420,0.0021,0.008,0.08,1.15],
-        "B420C":[420,0.0021,0.008,0.08,1.15],
-        "B500C":[500,0.0025,0.008,0.08,1.15]
-        }
+    # f_sy   = celikler[celiksınıfı][0]
+    # eps_sy = celikler[celiksınıfı][1]
+    # eps_sh = celikler[celiksınıfı][2]
+    # eps_su = celikler[celiksınıfı][3]
+    # f_su   = celikler[celiksınıfı][4]*f_sy
 
-    f_sy = celikler[celiksınıfı][0]
-    eps_sy = celikler[celiksınıfı][1]
-    eps_sh = celikler[celiksınıfı][2]
-    eps_su = celikler[celiksınıfı][3]
-    f_su = celikler[celiksınıfı][4]*f_sy
-
+    f_sy   = celiksınıfı.f_sy
+    eps_sy = celiksınıfı.eps_sy
+    eps_sh = celiksınıfı.eps_sh
+    eps_su = celiksınıfı.eps_su
+    f_su   = celiksınıfı.f_sy*celiksınıfı.Kres
     
     #Donatı alanları
+    #======================================================================================================================================================
     #numBarsTop, numBarsBot, numBarsIntTot
-
     bar_area = 3.14*boyuna_donatı_çapı**2/4
     top_bar_area = numBarsTop * bar_area
     int_bar_area = gövde_donatı_adeti * bar_area
@@ -94,6 +111,7 @@ def tbdy_mander(
     A_s = top_bar_area + bot_bar_area + int_bar_area
 
     #ke değerinin bulunması
+    #======================================================================================================================================================
     b_0 = bw-(pas_payı+etriye_çapı/2)*2 #core_x
     h_0 = h-(pas_payı+etriye_çapı/2)*2 #core_y
     #birim_x = (bw-2*pas_payı-2*etriye_çapı-boyuna_donatı_çapı)/(baslık_donatı_adeti-1) #birim aralık x
@@ -127,22 +145,23 @@ def tbdy_mander(
     #ro_y = A_sx/(s*h_0)
     
     #Hacimsel oranların bulunması
-
+    #======================================================================================================================================================
     #check kol adetleri
     x_kol_max = max(numBarsBot,numBarsTop)
     y_kol_max = gövde_donatı_adeti/2 + 2 #Çift sıra başlık donatısı göz ardı edilmiştir.
 
     if x_koladeti > x_kol_max:
         x_koladeti = x_kol_max
-        print(f"x_koladeti {x_kol_max} olarak değiştirildi maksimum {x_kol_max} kadar atılabiliyor")
+        print(f"x_koladeti {x_kol_max} olarak değiştirildi maksimum {x_kol_max} kadar atilabiliyor")
     if y_koladeti > y_kol_max:
         y_koladeti = y_kol_max
-        print(f"y_koladeti {y_kol_max} olarak değiştirildi maksimum {y_kol_max} kadar atılabiliyor")
+        print(f"y_koladeti {y_kol_max} olarak değiştirildi maksimum {y_kol_max} kadar atilabiliyor")
 
     ro_x = round((x_koladeti*3.14*etriye_çapı**2/4)/(s*b_0),5) #hacimsel oran x
     ro_y = round((y_koladeti*3.14*etriye_çapı**2/4)/(s*h_0),5) #hacimsel oran y
 
     #f_e değerinin bulunması
+    #======================================================================================================================================================
     f_ex = round(k_e*ro_x*f_sy,3)
     f_ey = round(k_e*ro_y*f_sy,3)
 
@@ -150,10 +169,13 @@ def tbdy_mander(
     f_e_sargısız = 0
 
     #lamda_c değerlerinin bulunması
-    lamda_c          = 2.254*mt.sqrt(1+7.94*(f_e/f_co))-(2*f_e/f_co)-1.254
-    lamda_c_sargısız = 2.254*mt.sqrt(1+7.94*(f_e_sargısız/f_co))-(2*f_e_sargısız/f_co)-1.254
+    #======================================================================================================================================================
+    
+    lamda_c          = 2.254*mt.sqrt( 1 + 7.94 * (f_e/f_co) )-(2*f_e/f_co)-1.254
+    lamda_c_sargısız = 2.254*mt.sqrt(1 + 7.94 * (f_e_sargısız/f_co) )-(2*f_e_sargısız/f_co)-1.254
     
     #Akma gerilmelerinin bulunması
+    #======================================================================================================================================================
     f_cc = lamda_c*f_co                     #sargılı beton akma stress
     f_cc_sargısız = lamda_c_sargısız*f_co   #sargısız beton akma stress
 
@@ -169,6 +191,7 @@ def tbdy_mander(
     r_sargısız = E_c/(E_c-E_sec_sargısız)
 
     #Performans düzeyleri için beton birim kısalmaları:
+    #======================================================================================================================================================
     alfa_se = a*b*c
     ro_sh_min = min(ro_x,ro_y)
     omega_we =alfa_se*ro_sh_min*f_sy/f_co
@@ -200,6 +223,7 @@ def tbdy_mander(
 
 
     #Sargılı ve sargısız beton modelinin bulunması
+    #======================================================================================================================================================
     x = []
     x_sargısız=[]
     f_c = []
@@ -214,6 +238,7 @@ def tbdy_mander(
         f_c_sargısız.append(f_c_birim_sargısız)
 
     #Sargılı model için iterasyon
+    #======================================================================================================================================================
     for eps in eps_c:
         x_birim = (eps/eps_cc)
         x.append(x_birim)
@@ -237,11 +262,20 @@ def tbdy_mander(
         #Sargılı çizimi
         ax.plot(eps_c,f_c,label="Confined model")
         ax.plot(eps_co,f_co_sargılı,'o',c="g") #strain 0.002 deki stress-strain noktasının çizimi sargılı
-        ax.annotate(f'{round(eps_co,4)}/{round(f_co_sargılı,2)}', xy=(eps_co, f_co_sargılı), xytext=(eps_co+0.001, f_co_sargılı+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+        ax.annotate(text      = f'{round(eps_co,4)}/{round(f_co_sargılı,2)}', 
+                    xy        = (eps_co, f_co_sargılı), 
+                    xytext    = (eps_co+0.001, f_co_sargılı+0.005),
+                    arrowprops= dict(facecolor='black', shrink=0.05))
         ax.plot(eps_cc,f_cc,'o',c="g")         #Maximum stress noktası sargılı
-        ax.annotate(f'{round(eps_cc,4)}/{round(f_cc,2)}', xy=(eps_cc, f_cc), xytext=(eps_cc+0.001, f_cc+0.005),arrowprops=dict(facecolor='black', shrink=0.05))
+        ax.annotate(text      = f'{round(eps_cc,4)}/{round(f_cc,2)}', 
+                    xy        = (eps_cc, f_cc), 
+                    xytext    = (eps_cc+0.001, f_cc+0.005),
+                    arrowprops= dict(facecolor='black', shrink=0.05))
         ax.plot(eps_cu,f_c_birim,'o',c="g")    #Ultimate nokta sargılı
-        ax.annotate(f'{round(eps_cu,4)}/{round(f_c_birim,2)}', xy=(eps_cu, f_c_birim), xytext=(eps_cu-0.001, f_c_birim-2),arrowprops=dict(facecolor='black', shrink=0.05))
+        ax.annotate(text      = f'{round(eps_cu,4)}/{round(f_c_birim,2)}', 
+                    xy        = (eps_cu, f_c_birim), 
+                    xytext    = (eps_cu-0.001, f_c_birim-2),
+                    arrowprops= dict(facecolor='black', shrink=0.05))
         
         #Performans Noktaları
         ax.plot(eps_cgö,f_cgö,'o',c="r",label = f"GÖ-{round(eps_cgö,4)}/{round(f_cgö,2)}")
@@ -254,6 +288,7 @@ def tbdy_mander(
         ax.legend(loc='lower right')
         plt.show()
     
+
     fc1U  = -f_co*Unit.MPa          # UNCONFINED concrete (todeschini parabolic model), maximum stress
     eps1U = -eps_c_sargısız[f_c_sargısız.index(max(f_c_sargısız))]     # strain at maximum strength of unconfined concrete
     fc2U  = -f_c_sargısız[-1]*Unit.MPa    # ultimate stress

@@ -22,7 +22,6 @@ class opsbuild:
     _version_ = "0.4.0"
     def __init__(self) -> None:
         pass
-    
     def modelbuild(ndm=2,ndf=3):
         """
         Modeli siler ve ndm=2 ndf=3 çerçeve model oluşturur.
@@ -336,7 +335,7 @@ class opsbuild:
             plt.show()
         return outputs
 
-    def cyclic_test(dref, numCycles, nSteps, Material,mass=1*Unit.tonne,name='core',plot=True):
+    def cyclic_test(dref, numCycles, nSteps, Material, mass=1*Unit.tonne,name='core',plot=True):
         """
         Run cyclic loading test on a uniaxial material
         Args:
@@ -1335,14 +1334,14 @@ class opsbuild:
                         forces = ops.eleForce(ele,-1) #eleman kuvvetlerini atıyorum
                         ElementForces.loc[indexForce] = [int(ele),forces[0],forces[1],forces[2],forces[3],forces[4],forces[5]]
                         indexForce += 1
-
+                    logger.info(f"~~~  eleman kuvvetleri kayit edildi {tCurrent}/{TmaxAnalysis} ...")
                 #Dataframe yapısına çevrildi 03.12.2022       
                 if outNodalDisp:
                     for node in ops.getNodeTags():
                         disps = ops.nodeDisp(node,-1)
                         NodalDisplacement.loc[indexDisp] = [int(node),disps[0],disps[1],disps[2]]
                         indexDisp += 1
-                
+                    logger.info(f"~~~  dugum noktalarinin deplasmanlari kayit edildi {tCurrent}/{TmaxAnalysis} ...")
                 #            [0    , 1  ,  2  ,    3     ,    4    ,   5   , 6]    
                 #outFiber : [record,Hsec,cover,idCoverMat,idCoreMat,idSteel,lpl]
                 #  0 ,1 , 2  , 3  ,  4 ,  5  ,     6    ,   7     ,   8   ,  9
@@ -1369,60 +1368,11 @@ class opsbuild:
                         fiber_stressStrain_steel_bot[0],fiber_stressStrain_steel_bot[1]]
                         FiberStressStrain.loc[indexFibers] = recordDatas
                         indexFibers += 1
-
-                        
-                        """
-                        if outFiber[0]:
-                            for ele in ops.getEleTags():
-                                if ele not in sectionOutput.keys():
-                                    fiberOutput[ele]={  "top_cover":{"stress":[],"strain":[]},
-                                                        "top_core" :{"stress":[],"strain":[]},
-                                                        "bot_cover":{"stress":[],"strain":[]},
-                                                        "bot_core" :{"stress":[],"strain":[]},
-                                                        "steel_top":{"stress":[],"strain":[]},
-                                                        "steel_bot":{"stress":[],"strain":[]},
-                                                    }
-                                #            [0    , 1  ,  2  ,    3     ,    4    ,   5   , 6]    
-                                #outFiber : [record,Hsec,cover,idCoverMat,idCoreMat,idSteel,lpl]
-                                # Compression fiber                                               eleman lokasyonu,  'fiber',        y=HSec/2            ,   z=0 ,   matTag 
-                                # ilgili eleman uzunluğunda verilen plastik mafsal uzunluğuna en yakın fiber kesitteki 6 noktada verilen malzeme türünde okuma yapılır
-                                fiber_stressStrain_top_cover        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber', outFiber[2]/2              ,    0  , outFiber[3]  , 'stressStrain' )
-                                fiber_stressStrain_top_core         = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber', (outFiber[2]-outFiber[3])/2,    0  , outFiber[4]  , 'stressStrain' )
-                                # Tension fiber
-                                fiber_stressStrain_bot_cover        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',-outFiber[2]/2              ,    0  , outFiber[3]  , 'stressStrain' )
-                                fiber_stressStrain_bot_core         = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',-(outFiber[2]-outFiber[3])/2,    0  , outFiber[4]  , 'stressStrain' )
-                                # Tension fiber - steel
-                                fiber_stressStrain_steel_top        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',outFiber[2]/2               ,    0  , outFiber[5]  , 'stressStrain' )
-                                fiber_stressStrain_steel_bot        = ops.eleResponse(ele, 'sectionX', outFiber[6],  'fiber',-outFiber[2]/2              ,    0  , outFiber[5]  , 'stressStrain' )
-                                
-                                
-                                if len(fiber_stressStrain_top_cover)>1:
-                                    fiberOutput[ele]["top_cover"]["stress"]   .append(fiber_stressStrain_top_cover[0])
-                                    fiberOutput[ele]["top_cover"]["strain"]   .append(fiber_stressStrain_top_cover[1])
-                                
-                                if len(fiber_stressStrain_top_core)>1:
-                                    fiberOutput[ele]["top_core"]["stress"]    .append(fiber_stressStrain_top_core[0])
-                                    fiberOutput[ele]["top_core"]["strain"]    .append(fiber_stressStrain_top_core[1])
-                                
-                                if len(fiber_stressStrain_bot_cover)>1:
-                                    fiberOutput[ele]["bot_cover"]["stress"]   .append(fiber_stressStrain_bot_cover[0])
-                                    fiberOutput[ele]["bot_cover"]["strain"]   .append(fiber_stressStrain_bot_cover[1])
-                                    
-                                if len(fiber_stressStrain_bot_core)>1:    
-                                    fiberOutput[ele]["bot_core"] ["stress"]   .append(fiber_stressStrain_bot_core [0])
-                                    fiberOutput[ele]["bot_core"] ["strain"]   .append(fiber_stressStrain_bot_core [1])
-                                
-                                if len(fiber_stressStrain_steel_top)>1:
-                                    fiberOutput[ele]["steel_top"]["stress"]   .append(fiber_stressStrain_steel_top[0])
-                                    fiberOutput[ele]["steel_top"]["strain"]   .append(fiber_stressStrain_steel_top[1])
-                                
-                                if len(fiber_stressStrain_steel_bot)>1:
-                                    fiberOutput[ele]["steel_bot"]["stress"]   .append(fiber_stressStrain_steel_bot[0])
-                                    fiberOutput[ele]["steel_bot"]["strain"]   .append(fiber_stressStrain_steel_bot[1])
-                        """
+                    logger.info(f"~~~  kesitlerdeki gerilme-sekildegistirmeler kayit edildi {tCurrent}/{TmaxAnalysis} ...")
+                    
                                                                             
-                    if animotions:
-                        for el_i, ele_tag in enumerate(el_tags):
+                if animotions:
+                    for el_i, ele_tag in enumerate(el_tags):
                             nd1, nd2 = ops.eleNodes(ele_tag)
                             Eds[step, el_i, :] = [ops.nodeDisp(nd1)[0],
                                                     ops.nodeDisp(nd1)[1],
@@ -1430,83 +1380,18 @@ class opsbuild:
                                                     ops.nodeDisp(nd2)[0],
                                                     ops.nodeDisp(nd2)[1],
                                                     ops.nodeDisp(nd2)[2]]
-                    
+                    logger.info(f"~~~  animasyon bilgileri kayit edildi {tCurrent}/{TmaxAnalysis} ...")
+
                     #Dataframe yapısına çevrildi 03.12.2022
-                    if outSection:
-                        for ele in ops.getEleTags():
+                if outSection:
+                    for ele in ops.getEleTags():
                             basicForces        = ops.eleResponse(ele,'basicForce')                   #[axial , iMoment,jMoment] 
                             basicDeforms       = ops.eleResponse(ele,'basicDeformation')             #[pinch , irotation,jrotation] 
                             MomentRotation.loc[indexMomrot] = [int(ele),basicForces[1],basicDeforms[1],basicForces[2],basicDeforms[2]]
                             indexMomrot += 1
-                            
-                        """
-                        for ele in ops.getEleTags():
 
-                            if ele not in sectionOutput.keys():
-                                sectionOutput[ele]={
-                                                    #"force"         : [],
-                                                    "ibasicForce"    : [],
-                                                    "jbasicForce"    : [],
-                                                    "itotalRot"      : [],
-                                                    #"iplasticRot"   : [],
-                                                    #"ielasticRot"   : [],
-                                                    "jtotalRot"      : [],
-                                                    #"jplasticRot"   : [],
-                                                    #"jelasticRot"   : [],
-                                                    #"intgLocation"  : ops.eleResponse(ele,"integrationPoints"),
-                                                    #"intgForces"    : [],
-                                                    #"intgCurvature" : []
-                                                }
-                                
-                            #intgpnt = len(ops.sectionLocation(ele))
-                            basicForces        = ops.eleResponse(ele,'basicForce')                   #[axial , iMoment,jMoment] 
-                            basicDeforms       = ops.eleResponse(ele,'basicDeformation')             #[pinch , irotation,jrotation] 
-                            #plasticDeforms     = ops.eleResponse(ele,'plasticDeformation')           #[pinch , irotation,jrotation] 
-                            #elasticDeforms     = [(i-z) for i,z in zip(basicDeforms,plasticDeforms)] #[pinch , irotation,jrotation]
-                            #forces             = ops.eleResponse(ele,"force")                        #[iaxial,ishear,imoment,jaxial,jshear,jmoment]
-                            
-                            ibasicForces       = basicForces[1]   #i ucunun momenti tutuluyor her zaman adımında
-                            jbasicForces       = basicForces[2]   #j ucunun momenti tutuluyor her zaman adımında
-                            
-                            ibasicDeforms      = basicDeforms[1]    #i ucunun dönmesi tutuluyor her zaman adımında
-                            #iplasticDeforms    = plasticDeforms[1]  #i ucunun dönmesi tutuluyor her zaman adımında
-                            #ielasticDeforms    = elasticDeforms[1]  #i ucunun dönmesi tutuluyor her zaman adımında
-                            
-                            jbasicDeforms      = basicDeforms[2]  #i ucunun dönmesi tutuluyor her zaman adımında
-                            #jplasticDeforms    = plasticDeforms[2]  #i ucunun dönmesi tutuluyor her zaman adımında
-                            #jelasticDeforms    = elasticDeforms[2]  #i ucunun dönmesi tutuluyor her zaman adımında
-                            
-                            #sectionForces      = ops.eleResponse(ele,"section",1,"force")       #integrasyon noktalarındaki kuvvetler tutuluyor
-                            #sectionCurvatures  = ops.eleResponse(ele,"section",1,"deformation") #integrasyon noktalarındaki eğilmeler tutuluyor
-
-                            #sectionOutput[ele]["force"]        .append(forces)        #eleman iç kuvvetleri tutuluyor
-                            sectionOutput[ele]["ibasicForce"]  .append(ibasicForces)
-                            
-                            sectionOutput[ele]["jbasicForce"]  .append(jbasicForces)
-                            sectionOutput[ele]["itotalRot"]    .append(ibasicDeforms)
-                            #sectionOutput[ele]["iplasticRot"]  .append(iplasticDeforms)
-                            #sectionOutput[ele]["ielasticRot"]  .append(ielasticDeforms)
-                            sectionOutput[ele]["jtotalRot"]    .append(jbasicDeforms)
-
-                            #sectionOutput[ele]["jplasticRot"]  .append(jplasticDeforms)
-                            #sectionOutput[ele]["jelasticRot"]  .append(jelasticDeforms)
-                            #sectionOutput[ele]["intgForces"]   .append(sectionForces)
-                            #sectionOutput[ele]["intgCurvature"].append(sectionCurvatures)
-
-                            #Bilgilendirme için normalde kullanılmıyor...
-                            #axial_moment_i     = ops.eleResponse(ele,'section',2,'force')      # Column section forces, axial and moment,    node i return list
-                            #axial_curvature_i  = ops.eleResponse(ele,'section',2,'deformation')# section deformations,  axial(ezilme) and curvature(eğrilik), node i return list
-                            #axial_moment_j     = ops.eleResponse(ele,'section',5,'force')      # Column section forces, axial and moment,    node j return list
-                            #axial_curvature_j  = ops.eleResponse(ele,'section',5,'deformation')# section deformations,  axial and curvature, node j return list
-                            #sectionOutput[ele]["axial_moments_i"]   .append(axial_moment_i)
-                            #sectionOutput[ele]["axial_curvatures_i"].append(axial_curvature_i)
-                            #sectionOutput[ele]["axial_moments_j"]   .append(axial_moment_j)
-                            #sectionOutput[ele]["axial_curvatures_j"].append(axial_curvature_j)
-                            #sectionOutput[ele]["section_rotations_i"].append( ops.sectionDeformation(ele,2,2))
-                            #sectionOutput[ele]["section_rotations_j"].append(ops.sectionDeformation(ele,5,2))
-                            #sectionOutput[ele]["section_moments_i"]  .append(ops.sectionForce(ele,2,2))
-                            #sectionOutput[ele]["section_moments_j"]  .append( ops.sectionForce(ele,5,2))"""  
-
+                    logger.info(f"~~~  kesit sonuclari kayit edildi {tCurrent}/{TmaxAnalysis} ...")
+                        
                 if fiberData:
                     for ele in ops.getEleTags():
                         if ele not in outFiberData.keys():
@@ -1665,163 +1550,4 @@ class opsbuild:
         
         return M,K,C,Nmass,
         
-    def seismic_sequences_analysis(self,
-                                   numFloor : int,
-                                   TimeAnalysis : float , 
-                                   scalecoeff : list, 
-                                   Events : pd.DataFrame,
-                                   columndictionary : dict,
-                                   floorFrames : pd.DataFrame,
-                                   Lpl : float,
-                                   beam_H : int,
-                                   important_points_ext:list,
-                                   important_points_int:list,
-                                   Folderspath:str,
-                                   EarthquakeName:str
-                                  ):
-        #                                                                   MAIN SHOCK AFTER SHOCK ANALYSIS 
-        #===================================================================================================================================================================
-        IDloadTag = 400
-        tsTag = 3
-        for count,factor in enumerate(scalecoeff):
-            for index in range(0,len(Events.columns)-1):
-                # Zaman serilerinin tanımlanması
-                #===============================================================================================================
-                GMdirection = 1
-                GMfact = factor 
-                GMfatt = Unit.g
-                if index % 2 == 0:
-                    if index == 0:
-                        ops.remove('loadPattern',tsTag)
-                        ops.reset()
-                        print(f" ==> Opensees domainindeki time series silindi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-                    dt = Events[Events.columns[index]][1]-Events[Events.columns[index]][0]
-                    accel = Events[Events.columns[index+1]]
-                    ops.timeSeries('Path', tsTag, '-dt', dt, '-values', *accel,'-factor', GMfatt) 
-                    ops.pattern('UniformExcitation', IDloadTag, GMdirection, '-accel', tsTag,'-factor', GMfact)# pattern object
-                    print(f" ==> {index/2}. deprem için {factor} carpani uygulandi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-
-                    #Run time history analysis
-                    #===============================================================================================================
-
-                    DtAnalysis   = dt
-                    if TmaxAnalysis is None:
-                        TmaxAnalysis = Events[Events.columns[index]][Events.last_valid_index()]
-                    
-                    ops.wipeAnalysis()
-                    engine.analysis_define(solver=0, Tol=1e-8, maxNumIter=300, pFlag=0, nType=2)
-                    print(f" ==> analiz secenekleri tanimlandi ve analiz baslatildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-                    ElementForces,NodalDisplacement,MomentRotation,FiberStressStrain,Eds,times = engine.run_timehistory(
-                                                                                                                        columndict=pf.column_dict, 
-                                                                                                                        DtAnalysis=DtAnalysis, 
-                                                                                                                        TmaxAnalysis=TmaxAnalysis, 
-                                                                                                                        outEleForces = True, 
-                                                                                                                        outNodalDisp = True, 
-                                                                                                                        outFiber= True, 
-                                                                                                                        animotions= False, 
-                                                                                                                        outSection= True
-                                                                                                                       )
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi bitti - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-                    msp.plot_TNodeTime(time=times,NodalDisplacement=NodalDisplacement, SaveFolder = f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\", FigName = f"Top_Disp-Time{int(index/2)}")
-
-                    #Save outputs csv files
-                    #===============================================================================================================
-                    
-                    ElementForces.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\ElementForcesEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    NodalDisplacement.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\NodalDisplacementsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    MomentRotation.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\MomentRotationsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    FiberStressStrain.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\FiberStressStrainsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi sonuçlari csv olarak kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-
-                    #Modal Analysis
-                    #===============================================================================================================
-
-                    T1, Mratios, Mfactors, Mtots = op.modal_analys2(numFloor)
-                    ops.loadConst('-time', 0.0)
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi sonrasi modal analiz yapildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-                    
-                    #Story Drift Check
-                    #===============================================================================================================
-
-                    Columndrift = fp.StoryDrift2(NodalDisplacement,pf.column_dict,pf.floorFrames)
-                    Columndrift.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\ColumndriftsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi için kolon driftleri hesaplandi ve csv dosyalari kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-                    #Columndrift.query(f"Floor == {1}") # 1.kat sonuçları
-                    
-                    #Performance Check
-                    #===============================================================================================================
-                    FrameRotationPerformanceCheck = performance.FrameRotationPerformanceCheck(MomentRotation=MomentRotation, performance_limits=performance_limits)
-                    FrameRotationPerformanceCheck.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\RotationPerformanceEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi için elemanların dönme performansları bulundu ve csv dosyasi kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-
-                    CoreFiberStressStrainMax = performance.MaxCoreFiberStrain(StressStrain=FiberStressStrain)
-                    CoreFiberStressStrainMax.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\MaxCoreStrainsEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi için maximum beton ve çelik gerilmeleri bulundu ve csv dosyasi kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-
-                    FrameStrainPerformanceCheck = performance.FrameStrainPerformanceCheck(CoreFiberStressStrainMax,performance_limits)
-                    FrameStrainPerformanceCheck.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\StrainPerformanceEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi için elemanların şekildeğiştirme performansları bulundu ve csv dosyasi kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-
-                    #Energy Calculations
-                    #===============================================================================================================
-
-                    #Elemanların iki ucunda tüketilen enerji hesaplamaları
-                    SectionEnergy = pd.DataFrame(columns=["Eletags","iNode","jNode"])
-                    for ele in ops.getEleTags():
-                        tempdf = MomentRotation.query(f"Eletags == {ele} ")
-                        EH_i_total = sc.cumtrapz(tempdf.iMoment, tempdf.iRotation)
-                        EH_j_total = sc.cumtrapz(tempdf.jMoment, tempdf.jRotation)
-                        newj = [abs(i) for i in EH_i_total]
-                        newi = [abs(j) for j in EH_j_total]
-                        EH_j_total = newj
-                        EH_i_total = newi
-                        del newj,newi
-                        energymember = pd.DataFrame({"Eletags": ele, "iNode": EH_i_total, "jNode": EH_j_total})
-                        SectionEnergy = pd.concat([SectionEnergy, energymember])
-
-                    #Elemanlarda tüketilen toplam enerjilerin hesaplanması
-                    #===============================================================================================================
-                    #pf.floorFrames[(pf.floorFrames.EleType == "Column")&(pf.floorFrames.Floor == 1)]
-                    ElementEnergy = SectionEnergy.copy()
-                    floor = [pf.floorFrames.loc[ele]["Floor"] for ele in ElementEnergy.Eletags if ele == pf.floorFrames.EleId[ele]]
-                    ElementEnergy["Floor"] = floor
-                    ElementEnergy["ElementEnergy"] = ElementEnergy["iNode"] + ElementEnergy["jNode"]
-                    ElementEnergy.drop(columns=['iNode', 'jNode'], axis=1,inplace=True)
-
-                    #Total olarak katlarda dağıtılan enerji
-                    #===============================================================================================================
-                    floorenergy = {floor : [] for floor in pf.floorFrames.Floor.unique()}
-                    for floor in pf.floorFrames.Floor.unique():
-                        FloorEnergy = ElementEnergy.query(f"Floor == {floor} ")["ElementEnergy"].sum()
-                        floorenergy[floor].append(FloorEnergy) 
-                    FloorEnergyDiss = pd.DataFrame(floorenergy)
-                    FloorEnergyDiss.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\FloorEnergysEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-
-                    # Energy files save
-                    #===============================================================================================================
-                    SectionEnergy.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\SectionEnergysEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    ElementEnergy.to_csv(path_or_buf=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\CsvFiles\\ElementEnergysEqe{int(index/2)}.csv",index = False, encoding='utf-8')
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi enerji hesaplari yapildi ve csv dosyalari kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-
-                    # Strain-Stress plot and save fig
-                    #===============================================================================================================
-                    msp.plot_StressStrain(StressStrain=FiberStressStrain,FigName=f"StressStrain{index/2}",SaveFolder=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\StressStrainPlots")
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi stress-strain grafikleri kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}") 
-
-                    # Moment-Rotation plot and save fig
-                    #===============================================================================================================
-                    msp.plot_MomentRotation(MomentRotation,FigName=f"MomentRotation{index/2}",SaveFolder=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\MomentRotationPlots")
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi moment-rotation grafikleri kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}")
-
-                    # Section Energy plot and save fig
-                    #===============================================================================================================
-                    msp.plot_AllSection_Energy(SectionEnergy=SectionEnergy,FigName=f"SectionEnergy{index/2}",SaveFolder=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\EnergyPlots")
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi eleman i ve j uclarinin enerji grafikleri kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}")
-                    
-                    # Frame Energy plot and save fig
-                    #===============================================================================================================
-                    msp.plot_AllFrame_Energy(ElementEnergy=ElementEnergy,FigName=f"FrameEnergy{index/2}",SaveFolder=f"{Folderspath}\\Outputs\\{EarthquakeName}\\{factor}\\EnergyPlots")
-                    print(f" ==> {factor} carpani icin {index/2}. deprem analizi elemanlarin enerji grafikleri kayit edildi - {datetime.now().hour} : {datetime.now().minute} : {datetime.now().second}")
-                IDloadTag += 1
-                tsTag += 1
-
+    

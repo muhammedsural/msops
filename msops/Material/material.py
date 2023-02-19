@@ -5,13 +5,26 @@ import openseespy.opensees as ops
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+# conc = {
+#                     "C16": [16*un.MPa, 1.4*un.MPa, 27000*un.MPa],
+#                     "C18": [18*un.MPa, 1.5*un.MPa, 27500*un.MPa],
+#                     "C20": [20*un.MPa, 1.6*un.MPa, 28000*un.MPa],
+#                     "C25": [25*un.MPa, 1.8*un.MPa, 30000*un.MPa],
+#                     "C30": [30*un.MPa, 1.9*un.MPa, 32000*un.MPa],
+#                     "C35": [35*un.MPa, 2.1*un.MPa, 33000*un.MPa],
+#                     "C40": [40*un.MPa, 2.2*un.MPa, 34000*un.MPa],
+#                     "C45": [45*un.MPa, 2.3*un.MPa, 36000*un.MPa],
+#                     "C50": [50*un.MPa, 2.5*un.MPa, 37000*un.MPa]
+#                }
+
 class MaterialPropManager:
     
     def calc_shear_modules(Ec : float, poisson : float) -> float:
         return round(Ec/(2*(1+poisson)),4)
         
     def calc_young_modules(fck : int) -> float:
-        return round(57000*un.MPa*(fck/un.MPa)**0.5,4)
+        return round(57000*un.MPa*(fck)**0.5,4)
     
     def defineStrainHistory(peaksArray,scaleFactor,nSteps,nCycles) -> list:
         strain = []
@@ -66,6 +79,48 @@ class MaterialPropManager:
         axModel.set_ylabel('Stress')
         axModel.set_title(Name + ' Material Response')
         plt.show()
+
+@dataclass
+class MechanicalProperty:
+    """
+    Material mechanical properties 
+    E : young modulus
+    U : poission ratio
+    A : thermal coef
+    G : shear modulus
+    """
+    E : float = field(default_factory=float)
+    U : float = field(default_factory=float)
+    A : float = field(default_factory=float)
+    G : float = field(default_factory=float)
+
+    def __repr__(self) -> str:
+        return f'Young Modulus : {self.E}, poisson : {self.U}, Thermal coef : {self.A}, shear_modules : {self.G} '
+
+    def asdict():
+        return asdict()
+    
+@dataclass        
+class concrete(MaterialPropManager):
+    Name          : str  
+    Fck           : float 
+    Fctk          : Optional[float] = field(default_factory=float)
+    Density       : float = 24.99
+    PropMech      : Optional[MechanicalProperty] = field(default_factory=MechanicalProperty)
+
+    def __repr__(self) -> str:
+        return f'Name : {self.Name}, fck : {self.Fck}, Ec : {self.PropMech.E}'
+    
+    def asdict():
+        return asdict()
+    
+    def __post_init__(self):
+        if self.PropMech.E == 0.0:
+            poission = 0.2
+            young_mod = MaterialPropManager.calc_young_modules(fck= self.Fck)
+            shear_mod = MaterialPropManager.calc_shear_modules(Ec= young_mod,poisson=poission)
+            self.PropMech = MechanicalProperty(E= young_mod, U= poission, A= 0.0, G= shear_mod)
+        self.Fctk = self.Fck * 0.1
 
 class defaultopsMat():
     
@@ -162,11 +217,13 @@ class defaultopsMat():
 @dataclass
 class Concrete():
     name          : str   = None
-    density       : float = 24.99
     fck           : float = None
+    fctk          : float = None
     poisson       : float = 0.2
+    density       : float = 24.99
     Ec            : float = field(default_factory=float)
     shear_modules : float = field(default_factory=float)
+    
     
     def __repr__(self) -> str:
         return f'Name : {self.name}, fck : {self.fck}, Ec : {self.Ec}, poisson : {self.poisson}, shear_modules : {self.shear_modules} '
@@ -178,32 +235,39 @@ class Concrete():
     def __calc_young_modules(self):
         Ec = 57000*un.MPa*(self.fck/un.MPa)**0.5
         self.Ec = Ec
-        
+    
+    def __calc_fctk(self):
+        self.fctk = self.fck * 0.1
+
     def __post_init__(self):
-        # conc = {
-        #             "C16": [16*un.MPa, 1.4*un.MPa, 27000*un.MPa],
-        #             "C18": [18*un.MPa, 1.5*un.MPa, 27500*un.MPa],
-        #             "C20": [20*un.MPa, 1.6*un.MPa, 28000*un.MPa],
-        #             "C25": [25*un.MPa, 1.8*un.MPa, 30000*un.MPa],
-        #             "C30": [30*un.MPa, 1.9*un.MPa, 32000*un.MPa],
-        #             "C35": [35*un.MPa, 2.1*un.MPa, 33000*un.MPa],
-        #             "C40": [40*un.MPa, 2.2*un.MPa, 34000*un.MPa],
-        #             "C45": [45*un.MPa, 2.3*un.MPa, 36000*un.MPa],
-        #             "C50": [50*un.MPa, 2.5*un.MPa, 37000*un.MPa]
-        #        }
-        # if self.name is not None:
-        #     self.fck  = conc[self.name][0]
-        #     self.fctk = conc[self.name][1]
-        #     self.Ec   = conc[self.name][2]
+        conc = {
+                    "C16": [16*un.MPa, 1.4*un.MPa, 27000*un.MPa],
+                    "C18": [18*un.MPa, 1.5*un.MPa, 27500*un.MPa],
+                    "C20": [20*un.MPa, 1.6*un.MPa, 28000*un.MPa],
+                    "C25": [25*un.MPa, 1.8*un.MPa, 30000*un.MPa],
+                    "C30": [30*un.MPa, 1.9*un.MPa, 32000*un.MPa],
+                    "C35": [35*un.MPa, 2.1*un.MPa, 33000*un.MPa],
+                    "C40": [40*un.MPa, 2.2*un.MPa, 34000*un.MPa],
+                    "C45": [45*un.MPa, 2.3*un.MPa, 36000*un.MPa],
+                    "C50": [50*un.MPa, 2.5*un.MPa, 37000*un.MPa]
+               }
+        if self.name is not None:
+            if self.name not in conc.keys():
+                raise KeyError(future_index = conc.keys(), target_index=self.name, message=f"Girilen beton malzemesi bulunamadi.... malzeme listesi => {conc.keys()} ")
+            self.fck  = conc[self.name][0]
+            self.fctk = conc[self.name][1]
+            self.Ec   = conc[self.name][2]
+
+            self.__calc_shear_modules()
 
         if self.Ec is None:
             self.__calc_young_modules()
+
         if self.shear_modules is None:
             self.__calc_shear_modules()
         
     def asdict():
         return asdict()
-
 @dataclass
 class Steel():
     name    : str   = 'B500C'
@@ -223,12 +287,12 @@ class Steel():
     
     def __post_init__(self):
         steel = {
-                    "S220" :[220*un.MPa,0.0011, 0.011, 0.12 , 1.20],
-                    "S420" :[420*un.MPa,0.0021, 0.008, 0.08 , 1.15],
-                    "B420C":[420*un.MPa,0.0021, 0.008, 0.08 , 1.15],
-                    "B500C":[500*un.MPa,0.0025, 0.008, 0.08 , 1.15]
+                    "S220" :[220,0.0011, 0.011, 0.12 , 1.20],
+                    "S420" :[420,0.0021, 0.008, 0.08 , 1.15],
+                    "B420C":[420,0.0021, 0.008, 0.08 , 1.15],
+                    "B500C":[500,0.0025, 0.008, 0.08 , 1.15]
                 }
-        if self.name is not None:
+        if self.name in steel.keys():
             self.f_sy   = steel[self.name][0]
             self.eps_sy = steel[self.name][1]
             self.eps_sh = steel[self.name][2]
@@ -420,9 +484,10 @@ class opsmaterial:
         plt.show()
         
 
-#def main() -> None:
-#    """ Main function"""
-#    mat = opsmaterial(MaterialTypeIndex=2,matTag=1,inputArray=None,young_Module=None,stress_strain_test=True)
-#
-#if __name__ == "__main__":
-#    main()
+def main() -> None:
+   """ Main function"""
+   mat = concrete(Name="C25",Fck=25)
+   print(mat)
+
+if __name__ == "__main__":
+   main()

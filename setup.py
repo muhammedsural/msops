@@ -24,7 +24,7 @@ def setup_package():
     author_email = "muhammedsural@gmail.com",
     url = 'https://github.com/muhammedsural/msops',
     download_url = 'https://github.com/muhammedsural/msops/archive/refs/tags/0.4.1.tar.gz',
-    python_requires ='<=3.9.0',
+    python_requires ='==3.9.0',
     install_requires=[
           "numpy==1.22.4",
           "openseespy>=3.4.0.2",

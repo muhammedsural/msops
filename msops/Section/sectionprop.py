@@ -8,6 +8,7 @@ from msops.Material.material import Concrete,Steel
 from msops.Utility import Utilities as uti
 
 
+
 @dataclass
 class RectangularSectionProp():
     """Rectangular reinforcement concrete section object"""
@@ -22,10 +23,10 @@ class RectangularSectionProp():
     LongnitutalRebarDiameter    : float
     ConcreteMaterial            : Concrete = field(default_factory=Concrete)
     RebarMaterial               : Steel    = field(default_factory=Steel)
-    RebarNumbers                : list     = field(default_factory=list)
+    RebarNumbers                : list     = field(default_factory=list) #[number of top of section rebars,number of intermediate of section rebars,number of bot of section rebars ],
 
     def StressStrainModel(self) -> None:
-        unconfined,confined,impoints=tbdy_mander(celiksınıfı        = self.RebarMaterial.name,
+        unconfined,confined,impoints=tbdy_mander(celiksınıfı        = self.RebarMaterial,
                                                  f_co               = self.ConcreteMaterial.fck,
                                                  bw                 = self.Width,
                                                  h                  = self.Height,
@@ -50,19 +51,21 @@ class RectangularSectionProp():
 class rcsectionprop():
     def __init__(self,sectionname:str,width:float,height:float,concmaterial:None,rebarmaterial:None,numrebars : None,dialongrebars:None,density=24.99):
         """
-            sectionname:str,width:float,height:float,
-            concmaterial: Default None must be string,
+            sectionname  : str,
+            width        : float,
+            height       : float,
+            concmaterial : Default None must be string,
             rebarmaterial: Default None must be string,
-            numrebars : Default None must be array [number of top of section rebars,number of intermediate of section rebars,number of bot of section rebars ],
+            numrebars    : Default None must be array [number of top of section rebars,number of intermediate of section rebars,number of bot of section rebars ],
             dialongrebars: Default None rebars diameter [diameter,area]
         """     
         
         """
-        f_sy    : akma anındaki gerilme
-        eps_sy  : akma başlangıcı şekildeğiştirme değeri
-        eps_sh  : akma sonu pekleşme başlangıcı şekildeğiştirme değeri 
+        f_sy    : akma anindaki gerilme
+        eps_sy  : akma başlangici şekildeğiştirme değeri
+        eps_sh  : akma sonu pekleşme başlangici şekildeğiştirme değeri 
         eps_su  : kopma şekildeğiştirme değeri
-        f_su    : kopma gerilmesi/akma gerilmesi oranı minimumlar alınmıştır TBDY-bölüm5 Tablo5A.1
+        f_su    : kopma gerilmesi/akma gerilmesi orani minimumlar alinmiştir TBDY-bölüm5 Tablo5A.1
         Es      : 2*10**5
         """
         
@@ -89,17 +92,18 @@ class rcsectionprop():
         
         
         if concmaterial not in conc.keys():
-            print(f"beton malzemesi girilmemiş default olarak C20 atandı...")
+            print(f"beton malzemesi girilmemiş default olarak C20 atandi...")
             concmaterial = "C20"
         if rebarmaterial not in steel.keys():
-            print(f"çelik malzemesi girilmemiş default olarak B500C atandı...")
+            print(f"çelik malzemesi girilmemiş default olarak B500C atandi...")
             rebarmaterial = "B500C"
         if numrebars is None:
-            print(f"Kesitte bulunan donatı sayıları girilmemiş default değerler atandı...")
+            print(f"Kesitte bulunan donati sayilari girilmemiş default değerler atandi...")
             numrebars = [3,2,3]
         if dialongrebars is None:
-            print(f"Kesitteki boyuna donatı çapı girilmemiş default değer atandı...")
+            print(f"Kesitteki boyuna donati çapi girilmemiş default değer atandi...")
             dialongrebars = 22 *un.mm
+
         self.properties = {
             "name"               : sectionname,
             "b"                  : width,

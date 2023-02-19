@@ -6,7 +6,7 @@ import numpy as np
 from pandas import DataFrame
 from scipy.integrate import cumtrapz
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 class plotter:
     def plot_FloorEnergyDissap(df : DataFrame,floorEnergy: DataFrame ,EqeName : str ="Coalinga"):
         """Katlarda dağıtılan enerji grafiğini verir
@@ -16,16 +16,18 @@ class plotter:
                 EqeName     : int  =analiz edilen zaman serisinin ismi default "Coalinga"
         """
         df.groupby(["EleType","Floor"])["last","sum"].sum()
+        
         fig , ax = plt.subplots( 1,1 , sharex = False , sharey = True  , figsize=(20,4))
         ax.plot(df['last']["Beam"].values  ,df['last']["Beam"].keys()  ,label="MS-Beam"    ,color='r', marker='o', linestyle='dashed',linewidth=2, markersize=9)
         ax.plot(df['last']["Column"].values,df['last']["Column"].keys(),label="MS-Column"  ,color='g', marker='o', linestyle='dashed',linewidth=2, markersize=9)
         ax.plot(floorEnergy['last'].values,floorEnergy['last'].keys()  ,label="MS-Total"   ,color='b', marker='o', linestyle='dashed',linewidth=2, markersize=9)
         ax.set_xlabel("Energy (kNm)");ax.set_ylabel("Story No");ax.legend();ax.set_frame_on(True);ax.grid();
         fig.suptitle( f"{EqeName} Seismic Sequences Floor Dissipated Energy Graphs".upper(), fontsize = 12 );fig.dpi=300;
+        plt.clf()
 
     def plot_TNodeTime(time : list,NodalDisplacement : DataFrame, SaveFolder:str, FigName:str):
         topnode = NodalDisplacement.query(f"Nodetags == {max(ops.getNodeTags())}")
-
+        
         fig, ax = plt.subplots(figsize=(25,10))
         fig.subplots_adjust(bottom=0.15, left=0.2)
         ax.grid()
@@ -38,6 +40,7 @@ class plotter:
         if os.path.exists(SaveFolder) != True:
             os.mkdir(SaveFolder)
         plt.savefig(f"{SaveFolder}\\{FigName}.png")
+        plt.clf()
 
     def plot_MomRot(itotalRot,ibasicForce,jtotalRot,jbasicForce,count: list = [1 for i in range(5)]):
         """
@@ -45,6 +48,7 @@ class plotter:
         """
         for ele in ops.getEleTags():
             if ele in count:
+                
                 fig , ax = plt.subplots( 1,2 , sharex = True , sharey = True  , figsize=(20,5) )
                 ax[0].plot( itotalRot[ele], ibasicForce[ele] ) , ax[0].axhline(c = "k") , ax[0].axvline(c = "k") , ax[0].set_xlabel("Rotation (rad)"), ax[0].set_ylabel( "Moment (kNM)") , ax[0].legend( ["i node"]) , ax[0].set_frame_on(False) ; 
                 ax[1].plot( jtotalRot[ele], jbasicForce[ele] ) , ax[1].axhline(c = "k") , ax[1].axvline(c = "k") , ax[1].set_xlabel("Rotation (rad)"), ax[1].set_ylabel( "Moment (kNM)") , ax[1].legend( ["j node"]) , ax[1].set_frame_on(False) ; plt.suptitle( f"Frame{ele} Hysteresis Graphs".upper(), fontsize = 20 );
@@ -52,6 +56,7 @@ class plotter:
 
     def plot_MomentRotation(MomentRotation : DataFrame,FigName : str,SaveFolder : str):
         for ele in ops.getEleTags():
+            
             fig , ax = plt.subplots( 1,2 , sharex = True , sharey = True  , figsize=(20,5) )
             ax[0].plot( MomentRotation.query(f"Eletags == {ele} ")["iRotation"],MomentRotation.query(f"Eletags == {ele} ")["iMoment"] ) , ax[0].axhline(c = "k") , ax[0].axvline(c = "k") , ax[0].set_xlabel("Rotation (rad)"), ax[0].set_ylabel( "Moment (kNM)") , ax[0].legend( ["i node"]) , ax[0].set_frame_on(False) ; 
             ax[1].plot( MomentRotation.query(f"Eletags == {ele} ")["jRotation"],MomentRotation.query(f"Eletags == {ele} ")["jMoment"] ) , ax[1].axhline(c = "k") , ax[1].axvline(c = "k") , ax[1].set_xlabel("Rotation (rad)"), ax[1].set_ylabel( "Moment (kNM)") , ax[1].legend( ["j node"]) , ax[1].set_frame_on(False) ; plt.suptitle( f"Frame{ele} Hysteresis Graphs".upper(), fontsize = 20 );
@@ -62,6 +67,7 @@ class plotter:
     
     def plot_Energy(ibasicForce,jbasicForce,itotalrot,iplasticrot,ielasticrot,jtotalrot,jplasticrot,jelasticrot,count : int):
         """Plot Dissipated Energy Graphs"""
+        
         for ele in ops.getEleTags():
             if ele <= count:
                 EH_i_total   = cumtrapz(jbasicForce[ele],jtotalrot[ele])
@@ -98,12 +104,14 @@ class plotter:
                 else:
                     os.mkdir(path)
                 fig.savefig(path+f"/Frame{ele}.png",facecolor='white')
+                plt.clf()
                 #plt.savefig(path+f"/Frame{ele}.png")
             continue
         plt.show() 
-    
+        
     def plot_AllSection_Energy(SectionEnergy : DataFrame, FigName : str, SaveFolder: str):
         for ele in ops.getEleTags():
+            
             temp = SectionEnergy.query(f"Eletags == {ele} ")
             fig , ax = plt.subplots( 1,2 , sharex = True , sharey = True  , figsize=(20,8) )
             ax[0].plot( temp["iNode"] )
@@ -132,10 +140,12 @@ class plotter:
                 os.mkdir(f"{SaveFolder}\\Sectionsplot")
 
             plt.savefig(f"{SaveFolder}\\Sectionsplot\\{FigName}{ele}.png")
+            plt.clf()
             #plt.show()  
 
     def plot_AllFrame_Energy(ElementEnergy : DataFrame, FigName : str, SaveFolder: str):
         for ele in ops.getEleTags():
+            
             temp = ElementEnergy.query(f"Eletags == {ele} ")
             fig,ax = plt.subplots(1,1 , sharex = True , sharey = True  , figsize=(20,8))
             ax.plot( temp["ElementEnergy"] ), ax.axhline(c = "k"), ax.axvline(c = "k"), ax.set_xlabel("Step"), ax.set_ylabel( "EH (kNM)"), ax.legend( [f"{ele} total"]), ax.set_frame_on(False), ax.set_xlim(left = 0 )
@@ -145,10 +155,12 @@ class plotter:
             if os.path.exists(f"{SaveFolder}\\Framesplot") != True:
                 os.mkdir(f"{SaveFolder}\\Framesplot")
             plt.savefig(f"{SaveFolder}\\Framesplot\\{FigName}{ele}.png")
+            plt.clf()
             #plt.show() 
 
     def plot_StressStrain(StressStrain : DataFrame,FigName : str,SaveFolder : str):
         for ele in ops.getEleTags():
+            
             temp = StressStrain.query(f"Eletags == {ele} ")
             fig , ax = plt.subplots( 1,1 , sharex = True , sharey = True  , figsize=(20,5) )
             ax.plot( temp["BotCoreStrain"], temp["BotCoreStress"] ) , ax.axhline(c = "k") , ax.axvline(c = "k") , ax.set_xlabel("Strain (m)"), ax.set_ylabel( "Stress (kN/m2)") , ax.legend( ["stress-strain"]) , ax.set_frame_on(False) ; 
@@ -156,6 +168,7 @@ class plotter:
             if os.path.exists(SaveFolder) != True:
                 os.mkdir(SaveFolder)
             plt.savefig(f"{SaveFolder}/{FigName}{ele}.png")
+            plt.clf()
             #plt.show()
 
     #daha hazır değil
@@ -170,6 +183,7 @@ class plotter:
                 concat_disp.append(i)
         
         concat_time = [i*dt for i in range(len(concat_disp))]
+        
         fig, ax = plt.subplots(figsize=(25,10))
         fig.subplots_adjust(bottom=0.15, left=0.2)
         ax.grid()
@@ -177,6 +191,7 @@ class plotter:
         ax.axhline(0, color='black', lw=2)
         ax.set(xlabel="Time [Sec]", ylabel=f"Horizontal Displacement of node {max(ops.getNodeTags())}",title="main-after shock top disp/time")
         plt.show()
+        plt.clf()
 
     def animation(Eds,time,pf=20.8,sfac_a=50.,tkt=8.):
         """
@@ -195,6 +210,7 @@ class plotter:
                                         ylim=[-10, 20], fig_wi_he=(30., 30.))
         plt.show()
         anim.save(filename=".\aa")
+        plt.clf()
 
     def spyMatrix():
         """
@@ -231,6 +247,7 @@ class plotter:
         # Plot       
         plt.spy(SpyMatrix,markersize=.5)
         plt.xlabel(f'Bandwidth={bw}')
+        plt.clf()
 
     def capacityCurve(DispCtrlNode,LoadFactor):
         """
@@ -253,6 +270,7 @@ class plotter:
             SecID     :tag for the section that is generated by BuildRCrectSection procedure
             fiber_sec
         """
+        
         matcolor = ['r', 'lightgrey', 'gold', 'w', 'w', 'w']
         opsv.plot_fiber_section(fiber_sec, matcolor=matcolor)
         plt.title(f'Section :{SecID}')
@@ -260,6 +278,7 @@ class plotter:
         plt.show()
 
     def plot_model(sfac=None):
+        
         opsv.plot_model(fig_wi_he=(30., 25.),node_supports=True)
         plt.title('Structure and Frame Integration Points')
         
@@ -270,52 +289,70 @@ class plotter:
         opsv.plot_loads_2d(fig_wi_he=(30., 25.),nep=10,node_supports=node_supports,ax=ax)
         plt.show()
 
-    def plot_mander(eps_c : list,f_c : list,points : dict = None,**kwargs) -> None:
+    def plot_mander(eps_co : list, f_co : list, eps_cc : list, f_cc : list, points : dict = None, **kwargs) -> None:
         """
             INPUT:
-                eps_c  : list of strain value for confined conc
-                f_c    : list of stress value for confined conc
-                points : Dictionary importants point from stress-strain graph
+                eps_co   : list of strain value for unconfined conc
+                f_co     : list of stress value for unconfined conc
+                eps_cc   : list of strain value for confined conc
+                f_cc     : list of stress value for confined conc
+                points   : Dictionary importants point from stress-strain graph
                 **kwargs : plot arguments for example label= "Confined Model"
         """
-
+            
         fig, ax = plt.subplots(figsize=(10,10))
         fig.subplots_adjust(bottom=0.15, left=0.2)
         ax.grid()
-        ax.plot(eps_c,f_c,**kwargs) #stress-stain plot
-
-        if points is not None:
-            eps_co,f_co = points["curvepoints"][0][0],points["curvepoints"][0][1]
-            print(f"confined_yield_point {eps_co,f_co}")
-            ax.plot(eps_co,f_co,label="Yield Point")
-            ax.annotate(f'{round(eps_co,4)}/{round(f_co,2)}', xy=(eps_co, f_co), xytext=(eps_co, f_co),arrowprops=dict(facecolor='black', shrink=0.05))
-            
-            eps_cc,f_cc = points["curvepoints"][1][0],points["curvepoints"][1][1]
-            print(f"confined_max_point {eps_cc,f_cc}")
-            ax.plot(eps_cc,f_cc,label="Max Point")
-            ax.annotate(f'{round(eps_cc,4)}/{round(f_cc,2)}', xy=(eps_cc, f_cc), xytext=(eps_cc, f_cc),arrowprops=dict(facecolor='black', shrink=0.05))
-
-            eps_cu,f_cu = points["curvepoints"][2][0],points["curvepoints"][2][1]
-            print(f"confined_ultimate_point {eps_cu,f_cu}")
-            ax.plot(eps_cu,f_cu,label="Ultimate Point")
-            ax.annotate(f'{round(eps_cu,4)}/{round(f_cu,2)}', xy=(eps_cu, f_cu), xytext=(eps_cu,f_cu),arrowprops=dict(facecolor='black', shrink=0.05))
-
-            eps_cgö,f_cgö = points["performance"][0][0],points["performance"][0][1]
-            ax.plot(eps_cgö,f_cgö,'o',c="r")
-            ax.text(eps_cgö, f_cgö+0.8, f'GÖ {round(eps_cgö,4)}/{round(f_cgö,2)}', style='italic')
-
-            eps_ckh,f_ckh = points["performance"][1][0],points["performance"][1][1]
-            ax.plot(eps_ckh,f_ckh,'o',c="y")
-            ax.text(eps_ckh, f_ckh, f'KH {round(eps_ckh,4)}/{round(f_ckh,2)}', style='italic')
-
-            eps_csh,f_csh = points["performance"][2][0],points["performance"][2][1]
-            ax.plot(eps_csh,f_csh,'o',c="g")
-            ax.text(eps_csh, f_csh, f'SH {round(eps_csh,4)}/{round(f_csh,2)}', style='italic')
-
+        #Sargısız Çizimi
+        ax.plot(eps_co,f_co,label="UnConfined model")
+        #Sargılı çizimi
+        ax.plot(eps_c,f_c,label="Confined model")
+        
         ax.set_xlabel('Strain (mm)')  # Add an x-label to the axes.
         ax.set_ylabel('Stress (MPa)')  # Add a y-label to the axes.
         ax.set_title("Mander Model")  # Add a title to the axes.
+        ax.legend(loc='lower right')
         plt.show()
+
+
+
+        # fig, ax = plt.subplots(figsize=(10,10))
+        # fig.subplots_adjust(bottom=0.15, left=0.2)
+        # ax.grid()
+        # ax.plot(eps_c,f_c,**kwargs) #stress-stain plot
+
+        # if points is not None:
+        #     eps_co,f_co = points["curvepoints"][0][0],points["curvepoints"][0][1]
+        #     print(f"confined_yield_point {eps_co,f_co}")
+        #     ax.plot(eps_co,f_co,label="Yield Point")
+        #     ax.annotate(f'{round(eps_co,4)}/{round(f_co,2)}', xy=(eps_co, f_co), xytext=(eps_co, f_co),arrowprops=dict(facecolor='black', shrink=0.05))
+            
+        #     eps_cc,f_cc = points["curvepoints"][1][0],points["curvepoints"][1][1]
+        #     print(f"confined_max_point {eps_cc,f_cc}")
+        #     ax.plot(eps_cc,f_cc,label="Max Point")
+        #     ax.annotate(f'{round(eps_cc,4)}/{round(f_cc,2)}', xy=(eps_cc, f_cc), xytext=(eps_cc, f_cc),arrowprops=dict(facecolor='black', shrink=0.05))
+
+        #     eps_cu,f_cu = points["curvepoints"][2][0],points["curvepoints"][2][1]
+        #     print(f"confined_ultimate_point {eps_cu,f_cu}")
+        #     ax.plot(eps_cu,f_cu,label="Ultimate Point")
+        #     ax.annotate(f'{round(eps_cu,4)}/{round(f_cu,2)}', xy=(eps_cu, f_cu), xytext=(eps_cu,f_cu),arrowprops=dict(facecolor='black', shrink=0.05))
+
+        #     eps_cgö,f_cgö = points["performance"][0][0],points["performance"][0][1]
+        #     ax.plot(eps_cgö,f_cgö,'o',c="r")
+        #     ax.text(eps_cgö, f_cgö+0.8, f'GÖ {round(eps_cgö,4)}/{round(f_cgö,2)}', style='italic')
+
+        #     eps_ckh,f_ckh = points["performance"][1][0],points["performance"][1][1]
+        #     ax.plot(eps_ckh,f_ckh,'o',c="y")
+        #     ax.text(eps_ckh, f_ckh, f'KH {round(eps_ckh,4)}/{round(f_ckh,2)}', style='italic')
+
+        #     eps_csh,f_csh = points["performance"][2][0],points["performance"][2][1]
+        #     ax.plot(eps_csh,f_csh,'o',c="g")
+        #     ax.text(eps_csh, f_csh, f'SH {round(eps_csh,4)}/{round(f_csh,2)}', style='italic')
+
+        # ax.set_xlabel('Strain (mm)')  # Add an x-label to the axes.
+        # ax.set_ylabel('Stress (MPa)')  # Add a y-label to the axes.
+        # ax.set_title("Mander Model")  # Add a title to the axes.
+        # plt.show()
     
     def plot_Moment_Curvature(Curvature : list, LoadFactor : list,**kwargs) -> None:
         plt.rcParams.update({'font.size': 16})

@@ -89,10 +89,10 @@ def CreateOutputsFolder(TargetPGA : list,EarthquakeName : str):
 
 def CreateOutputsFolder(FolderPath :str ,EarthquakeName : str,coeff : list):
     # Sonuçların kayıt edileceği klasör oluşturulup csv dosyaları kayıt edilecek
-    Outputspath=f"{FolderPath}/Outputs"
+    Outputspath=f"{FolderPath}\\Outputs"
     for factor in coeff :
         eventsoutput =f"{Outputspath}//{EarthquakeName}"
-        factorsoutput =f"{Outputspath}//{EarthquakeName}//{factor}"
+        factorsoutput =f"{Outputspath}//{EarthquakeName}//{round(factor,4)}"
         if os.path.exists(Outputspath) != True:
             os.mkdir(Outputspath)
         if os.path.exists(eventsoutput) != True:
@@ -100,11 +100,11 @@ def CreateOutputsFolder(FolderPath :str ,EarthquakeName : str,coeff : list):
         if os.path.exists(factorsoutput) != True:
             os.mkdir(factorsoutput)
 
-        pgaoutputs = f"{Outputspath}//{EarthquakeName}//{factor}"
-        csvoutputs = f"{Outputspath}//{EarthquakeName}//{factor}/CsvFiles"
-        momrotoutputs = f"{Outputspath}//{EarthquakeName}//{factor}/MomentRotationPlots"
-        energyoutputs = f"{Outputspath}//{EarthquakeName}//{factor}/EnergyPlots"
-        momcurvoutputs = f"{Outputspath}//{EarthquakeName}//{factor}/StressStrainPlots"
+        pgaoutputs = f"{Outputspath}//{EarthquakeName}//{round(factor,4)}"
+        csvoutputs = f"{Outputspath}//{EarthquakeName}//{round(factor,4)}/CsvFiles"
+        momrotoutputs = f"{Outputspath}//{EarthquakeName}//{round(factor,4)}/MomentRotationPlots"
+        energyoutputs = f"{Outputspath}//{EarthquakeName}//{round(factor,4)}/EnergyPlots"
+        momcurvoutputs = f"{Outputspath}//{EarthquakeName}//{round(factor,4)}/StressStrainPlots"
         if os.path.exists(pgaoutputs) != True:
             os.makedirs(f"{pgaoutputs}")
         if os.path.exists(csvoutputs) != True:

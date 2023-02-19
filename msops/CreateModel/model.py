@@ -152,7 +152,7 @@ class createPortalFrame2():
     firstFloor          : int
     bayWidht            : int
     storyHeight         : int
-    concrete_material   : Concrete      = Concrete(name='C25/30',fck=30*Unit.MPa)
+    concrete_material   : Concrete      = Concrete(name='C25',fck=30*Unit.MPa)
     rebar_material      : Steel         = Steel(name='S420')
     dbAxis              : list          = field(default_factory=list)
     dbFloorNodes        : dict          = field(default_factory=dict)
@@ -321,15 +321,15 @@ class createPortalFrame2():
         self.createFrames()
         """
 
-def main():
-    model = createPortalFrame2(numBay=2,numFloor=2,firstFloor=4,bayWidht=3,storyHeight=3)
-    print(model.dbFrames)
-    """Kolon yaratırken oluşturduğu betonarme kesitlerde eğer kabuk ve çekirdek için bir opsmaterial nesnesi yaratmazsam default değer atar. 
-    Bunun test grafiğinide aşağıdaki kodlar ile elde ederim. Bir nesne ataması yaparsam ona uygun olarak test çizimi gelir.
+# def main():
+#     model = createPortalFrame2(numBay=2,numFloor=2,firstFloor=4,bayWidht=3,storyHeight=3)
+#     print(model.dbFrames)
+#     """Kolon yaratırken oluşturduğu betonarme kesitlerde eğer kabuk ve çekirdek için bir opsmaterial nesnesi yaratmazsam default değer atar. 
+#     Bunun test grafiğinide aşağıdaki kodlar ile elde ederim. Bir nesne ataması yaparsam ona uygun olarak test çizimi gelir.
     
-    C1 = model.dbSections.find_sections([1])
-    sec1 = C1[0].coverConc
-    sec1.testMaterial(materialName=sec1.get_MaterialType())
-    """
-if __name__ == "__main__":
-    main()
+#     C1 = model.dbSections.find_sections([1])
+#     sec1 = C1[0].coverConc
+#     sec1.testMaterial(materialName=sec1.get_MaterialType())
+#     """
+# if __name__ == "__main__":
+#     main()
