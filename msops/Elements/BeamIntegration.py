@@ -66,6 +66,6 @@ class IntegrationDatas:
 
     def Get_all_integration(self):
         """Get all defined integration"""
-        pass
+        return self.Integrations
 
 

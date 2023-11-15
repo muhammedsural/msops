@@ -484,10 +484,10 @@ class opsmaterial:
         plt.show()
         
 
-def main() -> None:
-   """ Main function"""
+"""def main() -> None:
+   '''Main function'''
    mat = concrete(Name="C25",Fck=25)
    print(mat)
 
 if __name__ == "__main__":
-   main()
+   main()"""

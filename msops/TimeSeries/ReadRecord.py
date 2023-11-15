@@ -20,7 +20,7 @@ structures" makalesinde iki ardışık deprem arasında doğal hareketi sıfırl
         R_timegap = round(R_rest,0)
         return R_timegap
     
-def ReadRecord (filePath:str,gap:float,g=9.81,plot=1):
+def ReadRecord (filePath:str,gap:float,g=9.81,plot=1) -> pd.DataFrame:
     acceleration = []
 
     with open(filePath,"r") as file:

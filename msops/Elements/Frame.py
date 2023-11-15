@@ -96,6 +96,8 @@ class FrameDatas:
     def find_frame(self, frameType: FrameType) -> list[ElasticBeamColumn]:
         """Find all frames with a particular role in the employee list"""
         return [frame for frame in self.Frames if frame.frameType is frameType]
+    
+    
 
 
 """def main() -> None:

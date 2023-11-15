@@ -152,15 +152,15 @@ class createPortalFrame2():
     firstFloor          : int
     bayWidht            : int
     storyHeight         : int
-    concrete_material   : Concrete      = Concrete(name='C25',fck=30*Unit.MPa)
-    rebar_material      : Steel         = Steel(name='S420')
-    dbAxis              : list          = field(default_factory=list)
-    dbFloorNodes        : dict          = field(default_factory=dict)
-    dbNodes             : NodeDatas     = NodeDatas()
-    dbSections          : SectionDatas  = SectionDatas()
+    concrete_material   : Concrete         = Concrete(name='C25',fck=30*Unit.MPa)
+    rebar_material      : Steel            = Steel(name='S420')
+    dbAxis              : list             = field(default_factory=list)
+    dbFloorNodes        : dict             = field(default_factory=dict)
+    dbNodes             : NodeDatas        = NodeDatas()
+    dbSections          : SectionDatas     = SectionDatas()
     dbIntegrations      : IntegrationDatas = IntegrationDatas()
-    dbFrames            : FrameDatas    = FrameDatas()
-    __frameNo           : int           = field(default=1)
+    dbFrames            : FrameDatas       = FrameDatas()
+    __frameNo           : int              = field(default=1)
     
     def __post_init__(self) -> None:
         self.create_axis()

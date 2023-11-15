@@ -675,7 +675,7 @@ class TargetSpectrum:
 
         return TargetSpectrum
     
-    def TimeSeriesSpectra(self,Acceleration , Time ):    
+    def TimeSeriesSpectra(self,Acceleration : pd.Series , Time : pd.Series ):    
         sampling_interval = Time[1]-Time[0]
         damping_ratio = 0.05
         Sd = []
